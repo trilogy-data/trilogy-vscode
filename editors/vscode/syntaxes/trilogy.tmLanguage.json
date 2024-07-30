@@ -1,0 +1,41 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Trilogy",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#types"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.trilogy",
+				"match": "(?i)\\b(persist|show|select|filter|where|into|key|property|metric|auto|as|->|<-)\\b"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.trilogy",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.trilogy",
+					"match": "\\\\."
+				}
+			]
+		},
+		"types": {
+			"patterns": [{
+				"name": "keyword.control.trilogy",
+				"match": "(?i)\\b(string|int|float)\\b"
+			}]
+		}
+	},
+	"scopeName": "source.trilogy"
+}

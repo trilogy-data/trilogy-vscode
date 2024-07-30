@@ -1,0 +1,65 @@
+{
+	"name": "vscode-trilogy-tools",
+	"description": "trilogy language server client",
+	"author": "N/A",
+	"repository": "https://github.com/trilogydata/trilogy-language-server",
+	"license": "MIT",
+	"version": "0.1.0",
+	"engines": {
+	  "vscode": "^1.43.0"
+	},
+	"categories": [
+	  "Programming Languages"
+	],
+	"contributes": {
+	  "languages": [
+		{
+		  "id": "trilogy",
+		  "aliases": [
+			"trilogy"
+		  ],
+		  "extensions": [
+			".preql"
+		  ],
+		  "configuration": "./language-configuration.json"
+		}
+	  ],
+	  "grammars": [
+		{
+		  "language": "trilogy",
+		  "scopeName": "source.trilogy",
+      	   "path": "./syntaxes/trilogy.tmLanguage.json"
+		}
+	  ],
+	  "configuration": {
+		"type": "object",
+		"title": "trilogy Language Server Configuration",
+		"properties": {
+		  "trilogyLanguageServer.someConfig": {
+			"scope": "resource",
+			"type": "string",
+			"default": "some default."
+		  }
+		}
+	  }
+	},
+	"main": "./out/extension",
+	"scripts": {
+	  "vscode:prepublish": "npm run compile",
+	  "compile": "tsc -b",
+	  "watch": "tsc -b -w",
+	  "package": "vsce package --out trilogy_tools.vsix"
+	},
+	"dependencies": {
+	  "vscode-languageclient": "^6.1.3"
+	},
+	"devDependencies": {
+	  "vsce": "^1.77.0",
+	  "@types/node": "^12.11.7",
+	  "eslint": "^6.4.0",
+	  "@typescript-eslint/parser": "^2.3.0",
+	  "typescript": "^3.8.3",
+	  "@types/vscode": "1.43.0",
+	  "vscode-test": "^1.3.0"
+	}
+  }
