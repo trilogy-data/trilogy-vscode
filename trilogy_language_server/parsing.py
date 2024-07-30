@@ -43,7 +43,7 @@ def gen_tokens(text, item: ParseTree) -> List[Token]:
                 text=extract_subtext(
                     text, item.line, item.end_line, item.column - 1, item.end_column - 1
                 ),
-                tok_type=item.type,
+                tok_type='variable',
                 tok_modifiers = [TokenModifier.definition]
             )
         )

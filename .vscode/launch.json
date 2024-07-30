@@ -16,7 +16,8 @@
                 "VSCODE_DEBUG_MODE": "true"
 				
             },
-			"languageServerExample.trace.server": "verbose"
+			"languageServerExample.trace.server": "verbose",
+			"preLaunchTask": "Sleepdelay"
 		},
 		{
             "name": "Launch Server",

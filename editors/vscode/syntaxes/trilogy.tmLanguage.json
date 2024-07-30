@@ -9,15 +9,38 @@
 			"include": "#strings"
 		},
 		{
+			"include": "#single_strings"
+		},
+		{
 			"include": "#types"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#paren-expression"
+		},
+		{
+			"include": "#concepts"
 		}
 	],
 	"repository": {
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.trilogy",
-				"match": "(?i)\\b(persist|show|select|filter|where|into|key|property|metric|auto|as|->|<-)\\b"
+				"match": "(?i)\\b(order|by|desc|and|or|auto|nulls|first|last|limit|in|persist|show|select|filter|where|into|as|->|<-)\\b"
+			},
+			{
+				"name": "keyword.control.import",
+				"match": "(?i)\\b(import)\\b"
 			}]
+		},
+		"concepts": {
+			"patterns": [{
+				"name": "support.variable",
+				"match": "(?i)\\b(key|property|metric|auto)\\b"
+			}
+			]
 		},
 		"strings": {
 			"name": "string.quoted.double.trilogy",
@@ -30,9 +53,41 @@
 				}
 			]
 		},
+		"single_strings": {
+			"name": "string.quoted.single.trilogy",
+			"begin": "'",
+			"end": "'",
+			"patterns": [
+				{
+					"name": "constant.character.escape.trilogy",
+					"match": "\\\\."
+				}
+			]
+		},
+		"paren-expression": {
+			"begin": "\\(",
+			"end": "\\)",
+			"beginCaptures": {
+			  "0": { "name": "punctuation.paren.open" }
+			},
+			"endCaptures": {
+			  "0": { "name": "punctuation.paren.close" }
+			},
+			"name": "expression.group",
+			"patterns": [{ "include": "#expression" }]
+		  },
+		"numbers": {
+			"name": "constant.numeric.trilogy",
+			"patterns": [
+				{
+					"name": "constant.character.escape.trilogy",
+					"match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+				}
+			]
+		},
 		"types": {
 			"patterns": [{
-				"name": "keyword.control.trilogy",
+				"name": "entity.name.type.trilogy",
 				"match": "(?i)\\b(string|int|float)\\b"
 			}]
 		}

@@ -34,6 +34,21 @@
 			"problemMatcher": [
 				"$tsc-watch"
 			]
-		}
+		},
+		{
+			"label": "Sleepdelay",
+			"type": "shell",
+			"command": "sleep 6",
+			"windows": {
+			  "command": "ping 127.0.0.1 -n 6 > $null"
+			},
+			"group": "none",
+			"presentation": {
+			  "reveal": "silent",
+			  "panel": "new"
+			}
+		  }
+
+		  
 	]
 }
