@@ -1,0 +1,49 @@
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+
+	<!--
+					Use a content security policy to only allow loading images from https or from our extension directory,
+					and only allow scripts that have a specific nonce.
+				-->
+	<meta http-equiv="Content-Security-Policy"
+		content="default-src 'none'; style-src ${webview.cspSource}; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}';">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link href="${stylesResetUri}" rel="stylesheet">
+	<link href="${stylesMainUri}" rel="stylesheet">
+
+	<title>Cat Coding</title>
+</head>
+<script>
+	// This script will be run inside the webview
+	(function () {
+		const vscode = acquireVsCodeApi();
+
+		document.getElementById('submitButton').addEventListener('click', () => {
+			const input = document.getElementById('inputText').value;
+			vscode.postMessage({
+				command: 'submit',
+				text: input
+			});
+		});
+	}());
+</script>
+
+<body>
+	<img src="${catGifPath}" width="300" />
+	<h1 id="lines-of-code-counter">0</h1>
+	<script nonce="${nonce}" src="${scriptUri}"></script>
+	<div id="controls">
+		<input nonce="${nonce}" lang="SQL" value="select 1;"></input>
+	</div>
+	<h1>Enter Text</h1>
+	<input type="text" id="inputText" />
+	<button id="submitButton">Submit</button>
+
+
+</body>
+
+</html>

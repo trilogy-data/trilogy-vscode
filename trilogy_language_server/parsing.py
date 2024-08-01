@@ -2,8 +2,9 @@ from trilogy_language_server.models import Token, TokenModifier
 from trilogy.parsing.parse_engine import PARSER
 from lark import ParseTree, Token as LarkToken
 from typing import List
-
-
+from lsprotocol.types import CodeLens, Range, Position, Command
+from trilogy.parsing.parse_engine import PARSER, ParseToObjects
+from trilogy.core.models import SelectStatement, MultiSelectStatement, PersistStatement
 def extract_subtext(
     text: str, start_line: int, end_line: int, start_col: int, end_col: int
 ) -> str:
@@ -63,3 +64,47 @@ def parse_tree(text, input: ParseTree)->List[Token]:
 def parse_text(text: str)->List[Token]:
     parsed: ParseTree = PARSER.parse(text)
     return parse_tree(parsed)
+
+
+def gen_tcode_lens(text, item: ParseTree) -> List[Token]:
+    tokens = []
+    if isinstance(item, LarkToken):
+        tokens.append(
+            CodeLens(
+                range = Range(
+					start=Position(line=item.line, character=item.column),
+					end=Position(line=item.end_line, character=item.end_column)
+				),
+                command = Command(
+				title=f"Run Query",
+				command="codeLens.runQuery",
+				arguments=[args],
+    )
+            )
+        )
+    else:
+        for child in item.children:
+            tokens += gen_tokens(text, child)
+    return tokens
+
+
+def code_lense_tree(text, input: ParseTree)->List[CodeLens]:
+    tokens = []
+    parsed = ParseToObjects().transform(input)
+    for idx, x in enumerate(parsed):
+        if isinstance(x, SelectStatement):
+            tokens.append(
+				CodeLens(
+					range = Range(
+						start=Position(line=x.meta.line, character=1),
+						end=Position(line=x.end_line, character=x.end_column)
+					),
+                    data = {'idx': idx},
+					command = Command(
+						title="Run Query",
+						command="codeLens.runQuery",
+						arguments=[idx],
+					)
+				)
+			)
+    return tokens

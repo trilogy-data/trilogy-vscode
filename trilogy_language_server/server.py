@@ -23,6 +23,8 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_CODE_ACTION,
     CodeLensParams,
     CODE_LENS_RESOLVE,
+	
+    WORKSPACE_CODE_LENS_REFRESH,
     Command,
     CodeLensResolveRequest,
     Range,
@@ -61,6 +63,8 @@ class TrilogyLanguageServer(LanguageServer):
     def __init__(self):
         super().__init__(name="trilogy-lang-server", version="v0.1")
         self.tokens: Dict[str, List[Token]] = {}
+        self.code_lens: Dict[str, List[CodeLens]] = {}
+        self.environment = Environment()
 
     def _validate(self: "TrilogyLanguageServer", params: DidChangeTextDocumentParams):
         self.show_message_log("Validating document...")
@@ -69,11 +73,17 @@ class TrilogyLanguageServer(LanguageServer):
         self.publish_diagnostics(text_doc.uri, diagnostics)
         if raw_tree:
             self.publish_tokens(text_doc.source, raw_tree, text_doc.uri)
+            self.publish_code_lens(text_doc.source, raw_tree, text_doc.uri)
 
     def publish_tokens(
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
         self.tokens[uri] = parse_tree(original_text, raw_tree)
+        self.code_lens[uri] = code_lens(original_text, raw_tree)
+        
+    def publish_code_lens(self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
+    ):
+        self.code_lens[uri] = code_lens(original_text, raw_tree)
 
 
 trilogy_server = TrilogyLanguageServer()
@@ -174,15 +184,10 @@ def code_lens(params: CodeLensParams):
             code_lens = CodeLens(
                 range=range_,
                 data={
-                    
-                },
-                command = Command(
-				title="Evaluate",
-				command="codeLens.evaluateSum",
-				arguments=[{'line': range_.start.line, "left": left,
+                    "left": left,
                     "right": right,
-                    "uri": document_uri,}],
-			)
+                    "uri": document_uri,
+                },
             )
             items.append(code_lens)
 
@@ -196,7 +201,7 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
     Using the ``data`` that was attached to the code lens item created in the function
     above, this prepares an invocation of the ``evaluateSum`` command below.
     """
-    ls.show_message_log("Resolving code lens: %s", item)
+    # ls.show_message_log("Resolving code lens: %s", item)
 
     left = item.data["left"]
     right = item.data["right"]
@@ -217,30 +222,12 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
     return item
 
 
-@trilogy_server.command("codeLens.evaluateSum")
-def evaluate_sum(ls: LanguageServer, args):
-    ls.show_message_log("arguments: %s", args)
+# @trilogy_server.command("codeLens.runQuery")
+# def evaluate_sum(ls: LanguageServer, args):
+#     ls.show_message_log("arguments: %s", args)
 
-    arguments = args[0]
-    document = ls.workspace.get_text_document(arguments["uri"])
-    line = document.lines[arguments["line"]]
+    
 
-    # Compute the edit that will update the document with the result.
-    answer = arguments["left"] + arguments["right"]
-    edit = TextDocumentEdit(
-        text_document=OptionalVersionedTextDocumentIdentifier(
-            uri=arguments["uri"], version=document.version
-        ),
-        edits=[
-            TextEdit(
-                new_text=f"{line.strip()} {answer}\n",
-                range=Range(
-                    start=Position(line=arguments["line"], character=0),
-                    end=Position(line=arguments["line"] + 1, character=0),
-                ),
-            )
-        ],
-    )
-
-    # Apply the edit.
-    ls.apply_edit(WorkspaceEdit(document_changes=[edit])) 	
+#     get_query()
+#     # Apply the edit.
+#     ls.apply_edit(WorkspaceEdit(document_changes=[edit])) 	
