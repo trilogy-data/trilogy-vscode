@@ -10739,7 +10739,6 @@ var ConfigViewProvider = class {
     return vscode4.Uri.joinPath(this.getRootUri(), "dist/webviews");
   }
   async getHtmlForWebview(webview) {
-    console.log("getHtmlForWebview");
     const htmlUri = vscode4.Uri.joinPath(
       this.getRootUri(),
       "dist/webviews/config.html"
