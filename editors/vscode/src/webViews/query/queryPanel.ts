@@ -42,7 +42,7 @@ class QueryPanel {
                 switch (message.command) {
                     case 'submit':
                         vscode.window.showInformationMessage(`Input received: ${message.text}`);
-                        this._queryDocument.runQuery(message.text, 100, (msg: IMessage) => this._panel.webview.postMessage(msg));
+                        this.runQuery(message.text);
                         return;
                     case 'alert':
                         vscode.window.showErrorMessage(message.text);
@@ -54,6 +54,10 @@ class QueryPanel {
         );
     }
 
+    public async runQuery(query: string) {
+        this._queryDocument.runQuery(query, 100, (msg: IMessage) => this._panel.webview.postMessage(msg));
+    }
+
     public static async createOrShow(extensionUri: vscode.Uri) {
         const column = vscode.window.activeTextEditor
             ? vscode.window.activeTextEditor.viewColumn
@@ -62,7 +66,7 @@ class QueryPanel {
         // If we already have a panel, show it.
         if (QueryPanel.currentPanel) {
             QueryPanel.currentPanel._panel.reveal(column);
-            return;
+            return QueryPanel.currentPanel;
         }
 
         // Otherwise, create a new panel.
@@ -74,6 +78,7 @@ class QueryPanel {
         );
 
         QueryPanel.currentPanel = await QueryPanel.create(panel, extensionUri);
+        return QueryPanel.currentPanel
     }
 
     public static async revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {

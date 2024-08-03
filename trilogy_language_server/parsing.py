@@ -4,7 +4,7 @@ from lark import ParseTree, Token as LarkToken
 from typing import List
 from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.parsing.parse_engine import PARSER, ParseToObjects
-from trilogy.core.models import SelectStatement, MultiSelectStatement, PersistStatement
+from trilogy.core.models import SelectStatement, MultiSelectStatement, PersistStatement, Environment
 from trilogy.dialect.base import BaseDialect
 def extract_subtext(
     text: str, start_line: int, end_line: int, start_col: int, end_col: int
@@ -61,51 +61,54 @@ def parse_tree(text, input: ParseTree)->List[Token]:
         tokens += gen_tokens(text, x)
     return tokens
 
+def gen_tree(text: str)->ParseTree:
+    return PARSER.parse(text)
 
 def parse_text(text: str)->List[Token]:
-    parsed: ParseTree = PARSER.parse(text)
+    parsed: ParseTree = gen_tree(text)
     return parse_tree(parsed)
 
 
-def gen_tcode_lens(text, item: ParseTree) -> List[Token]:
-    tokens = []
-    if isinstance(item, LarkToken):
-        tokens.append(
-            CodeLens(
-                range = Range(
-					start=Position(line=item.line, character=item.column),
-					end=Position(line=item.end_line, character=item.end_column)
-				),
-                command = Command(
-				title=f"Run Query",
-				command="codeLens.runQuery",
-				arguments=[args],
-    )
-            )
-        )
-    else:
-        for child in item.children:
-            tokens += gen_tokens(text, child)
-    return tokens
+# def gen_code_lens(text, item: ParseTree) -> List[Token]:
+#     tokens = []
+#     if isinstance(item, LarkToken):
+#         tokens.append(
+#             CodeLens(
+#                 range = Range(
+# 					start=Position(line=item.line, character=item.column),
+# 					end=Position(line=item.end_line, character=item.end_column)
+# 				),
+#                 command = Command(
+# 				title=f"Run Query",
+# 				command="codeLens.runQuery",
+# 				arguments=[args],
+#     )
+#             )
+#         )
+#     else:
+#         for child in item.children:
+#             tokens += gen_tokens(text, child)
+#     return tokens
 
 
 def code_lense_tree(text, input: ParseTree, dialect:BaseDialect)->List[CodeLens]:
     tokens = []
-    parsed = ParseToObjects().transform(input)
+    environment = Environment()
+    parsed = ParseToObjects(visit_tokens=True, text=text, environment=environment).transform(input)
     for idx, x in enumerate(parsed):
         if isinstance(x, SelectStatement):
-            processed = dialect.generate_queries([x])
+            processed = dialect.generate_queries(environment, [x])
             sql = dialect.compile_statement(processed[-1])
             tokens.append(
 				CodeLens(
 					range = Range(
-						start=Position(line=x.meta.line, character=1),
-						end=Position(line=x.end_line, character=x.end_column)
+						start=Position(line=x.meta.line_number-1, character=1),
+						end=Position(line=x.meta.line_number-1, character=10)
 					),
                     data = {'idx': idx},
 					command = Command(
 						title="Run Query",
-						command="codeLens.runQuery",
+						command="trilogy.runQuery",
 						arguments=[sql],
 					)
 				)

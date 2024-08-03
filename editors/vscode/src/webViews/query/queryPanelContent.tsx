@@ -2,18 +2,20 @@
 import ReactDOM from "react-dom/client";
 import React, { Component, createRef, FormEvent } from 'react'
 import { ColumnDescription } from './common'
-// import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
-// import sql from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
+import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
+import sql from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
 
 
-// SyntaxHighlighter.registerLanguage('sql', sql);
+SyntaxHighlighter.registerLanguage('sql', sql);
 
 
 const ITEMS_PER_PAGE = 20;
 interface QueryResultsState {
 	headers: ColumnDescription[];
 	data: any[];
+	sql: string;
 	currentPage: number;
+	loading: boolean;
 }
 
 class QueryResults extends Component<{ headers: ColumnDescription[]; data: any[] }> {
@@ -76,13 +78,15 @@ function SubmitButton({ vscode }) {
 }
 
 
-class QueryWrapper extends Component<{vscode:any}, QueryResultsState> {
-	constructor(props: {vscode:any}) {
+class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
+	constructor(props: { vscode: any }) {
 		super(props);
 		this.state = {
 			headers: [],
 			data: [],
+			sql: '',
 			currentPage: 1,
+			loading: false,
 		};
 	}
 
@@ -100,26 +104,24 @@ class QueryWrapper extends Component<{vscode:any}, QueryResultsState> {
 	render() {
 		// @ts-ignore
 		const { vscode } = this.props;
-		const { currentPage, headers, data } = this.state;
+		const { currentPage, headers, data, sql } = this.state;
 		const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 		const endIndex = startIndex + ITEMS_PER_PAGE;
 		const currentData = data.slice(startIndex, endIndex);
 		return (
 			<div className="w-full min-h-screen  flex flex-col items-center">
 				<div className="w-full max-w-4xl p-6  shadow-md rounded-lg">
-					<input nonce="${nonce}" type="text" id="inputText"
+					{/* <input nonce="${nonce}" type="text" id="inputText"
 						className="w-full p-2 border bg-gray border-gray-300 rounded-md mb-4"
 					/>
 					<form className="flex flex-col items-start mb-4">
 						<SubmitButton vscode={vscode}
 
 						/>
-					</form>
+					</form> */}
 					<h2 className="text-l font-semibold mb-2 text-white-700">Response ({data.length} rows)</h2>
 					<QueryResults data={currentData} headers={headers} />
-				</div>
-
-				<div className="flex justify-between items-center mt-6">
+					<div className="flex justify-between items-center mt-6">
 					<button
 						onClick={this.handlePrevPage}
 						disabled={currentPage === 1}
@@ -137,6 +139,13 @@ class QueryWrapper extends Component<{vscode:any}, QueryResultsState> {
 					>
 						Next
 					</button>
+				</div>
+				</div>
+				<div className="w-full max-w-4xl p-6  shadow-md rounded-lg">
+					<h2 className="text-l font-semibold mb-2 text-white-700">SQL</h2>
+					<SyntaxHighlighter language="sql">
+						{sql}
+					</SyntaxHighlighter>
 				</div>
 			</div>
 		)
@@ -166,7 +175,7 @@ const queryWrapperRef = createRef<QueryWrapper>();
 				return;
 			case 'query':
 				if (queryWrapperRef.current) {
-					queryWrapperRef.current.setState({ data: message.results, headers: message.headers });
+					queryWrapperRef.current.setState({ data: message.results, headers: message.headers, sql: message.sql });
 				}
 				break;
 		}

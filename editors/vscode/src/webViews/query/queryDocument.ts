@@ -7,6 +7,7 @@ import { ColumnDescription } from './common';
 export interface IMessage {
     type: 'query' | 'more';
     success: boolean;
+    sql?: string
     message?: string;
     results?: TableData;
     headers?: ColumnDescription[];
@@ -96,10 +97,10 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
                     this.formatSql(sql, limit, 0),
                     (err: Error, res: any[]) => {
                         if (err) {
-                            callback({ type: 'query', success: false, message: err.message });
+                            callback({ type: 'query', 'sql': sql,  success: false, message: err.message });
                             return;
                         }
-                        callback({ type: 'query', success: true, headers: descRes, results: this.cleanResults(res) });
+                        callback({ type: 'query', 'sql': sql, success: true, headers: descRes, results: this.cleanResults(res) });
                     }
                 );
             }

@@ -17,7 +17,6 @@
 		"onCommand:trilogy.runQuery"
 	],
 	"contributes": {
-
 		"viewsContainers": {
 			"activitybar": [
 				{
@@ -103,9 +102,11 @@
 	"dependencies": {
 		"@types/react": "^18.3.3",
 		"@types/react-dom": "^18.3.0",
+		"@types/react-syntax-highlighter": "^15.5.13",
 		"duckdb-async": "^1.0.0",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
+		"react-syntax-highlighter": "^15.5.0",
 		"vscode-languageclient": "^6.1.3"
 	},
 	"devDependencies": {
@@ -118,8 +119,8 @@
 		"@vscode/test-electron": "^2.3.9",
 		"esbuild": "0.23.0",
 		"eslint": "^8.57.0",
+		"svgo": "^3.3.2",
 		"tailwindcss": "^3.4.7",
-		"typescript": "^5.5.2",
-		"svgo": "^3.3.2"
+		"typescript": "^5.5.2"
 	}
 }

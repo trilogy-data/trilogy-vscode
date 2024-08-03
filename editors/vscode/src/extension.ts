@@ -61,8 +61,10 @@ function startLangServer(command: string, args: string[], cwd: string): Language
 
 function registerUI(context: ExtensionContext) {
   context.subscriptions.push(
-		vscode.commands.registerCommand('trilogy.runQuery', () => {
-			QueryPanel.createOrShow(context.extensionUri);
+		vscode.commands.registerCommand('trilogy.runQuery', (command) => {
+			QueryPanel.createOrShow(context.extensionUri).then((panel) => {
+				panel.runQuery(command);
+			});
       
 		})
 	);

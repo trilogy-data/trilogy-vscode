@@ -37,21 +37,19 @@ from lsprotocol.types import (
     
 )
 from functools import reduce
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Dict, List
 import enum
 from .error_reporting import get_diagnostics
 from pydantic import BaseModel, Field
 from functools import reduce
 import operator
 from lark import ParseTree
-from trilogy_language_server.models import Token
-from trilogy_language_server.models import TokenModifier
-from trilogy_language_server.parsing import parse_tree
+from trilogy_language_server.models import TokenModifier, Token
+from trilogy_language_server.parsing import parse_tree, code_lense_tree
 from trilogy.parsing.render import Renderer
 from trilogy.parsing.parse_engine import PARSER, ParseToObjects
 from trilogy.core.models import Environment
+from trilogy.dialect.duckdb import DuckDBDialect
 import re
 TokenTypes = ["keyword", "variable", "function", "operator", "parameter", "type"]
 
@@ -65,6 +63,7 @@ class TrilogyLanguageServer(LanguageServer):
         self.tokens: Dict[str, List[Token]] = {}
         self.code_lens: Dict[str, List[CodeLens]] = {}
         self.environment = Environment()
+        self.dialect = DuckDBDialect()
 
     def _validate(self: "TrilogyLanguageServer", params: DidChangeTextDocumentParams):
         self.show_message_log("Validating document...")
@@ -79,11 +78,10 @@ class TrilogyLanguageServer(LanguageServer):
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
         self.tokens[uri] = parse_tree(original_text, raw_tree)
-        self.code_lens[uri] = code_lens(original_text, raw_tree)
         
     def publish_code_lens(self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
-        self.code_lens[uri] = code_lens(original_text, raw_tree)
+        self.code_lens[uri] = code_lense_tree(original_text, raw_tree, self.dialect)
 
 
 trilogy_server = TrilogyLanguageServer()
@@ -141,7 +139,7 @@ def semantic_tokens_full(ls: TrilogyLanguageServer, params: SemanticTokensParams
     """Return the semantic tokens for the entire document"""
     data = []
     tokens = ls.tokens.get(params.text_document.uri, [])
-    ls.show_message_log(f"Returning smenatic tokens Tokens: {tokens}")
+    ls.show_message_log(f"Returning semantic tokens Tokens: {tokens}")
     for token in tokens:
         data.extend(
             [
@@ -160,7 +158,7 @@ def semantic_tokens_full(ls: TrilogyLanguageServer, params: SemanticTokensParams
 
 
 @trilogy_server.feature(TEXT_DOCUMENT_CODE_LENS)
-def code_lens(params: CodeLensParams):
+def code_lens(ls: TrilogyLanguageServer, params: CodeLensParams):
     """Return a list of code lens to insert into the given document.
 
     This method will read the whole document and identify each sum in the document and
@@ -168,30 +166,30 @@ def code_lens(params: CodeLensParams):
     """
     items = []
     document_uri = params.text_document.uri
-    document = trilogy_server.workspace.get_text_document(document_uri)
+    # document = trilogy_server.workspace.get_text_document(document_uri)
 
-    lines = document.lines
-    for idx, line in enumerate(lines):
-        match = ADDITION.match(line)
-        if match is not None:
-            range_ = Range(
-                start=Position(line=idx, character=0),
-                end=Position(line=idx, character=len(line) - 1),
-            )
-            left = int(match.group(1))
-            right = int(match.group(2))
+    # lines = document.lines
+    # for idx, line in enumerate(lines):
+    #     match = ADDITION.match(line)
+    #     if match is not None:
+    #         range_ = Range(
+    #             start=Position(line=idx, character=0),
+    #             end=Position(line=idx, character=len(line) - 1),
+    #         )
+    #         left = int(match.group(1))
+    #         right = int(match.group(2))
 
-            code_lens = CodeLens(
-                range=range_,
-                data={
-                    "left": left,
-                    "right": right,
-                    "uri": document_uri,
-                },
-            )
-            items.append(code_lens)
+    #         code_lens = CodeLens(
+    #             range=range_,
+    #             data={
+    #                 "left": left,
+    #                 "right": right,
+    #                 "uri": document_uri,
+    #             },
+    #         )
+    #         items.append(code_lens)
 
-    return items
+    return ls.code_lens.get(document_uri, [])
 
 
 @trilogy_server.feature(CODE_LENS_RESOLVE)
