@@ -78,16 +78,16 @@ function registerUI(context: ExtensionContext) {
 	// 	})
 	// );
 
-	// if (vscode.window.registerWebviewPanelSerializer) {
-	// 	// Make sure we register a serializer in activation event
-	// 	vscode.window.registerWebviewPanelSerializer(QueryPanel.viewType, {
-	// 		async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
-	// 			// Reset the webview options so we use latest uri for `localResourceRoots`.
-	// 			webviewPanel.webview.options = getWebviewOptions(context.extensionUri);
-	// 			QueryPanel.revive(webviewPanel, context.extensionUri);
-	// 		},
-	// 	});
-	// }
+	if (vscode.window.registerWebviewPanelSerializer) {
+		// Make sure we register a serializer in activation event
+		vscode.window.registerWebviewPanelSerializer(QueryPanel.viewType, {
+			async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+				// Reset the webview options so we use latest uri for `localResourceRoots`.
+				webviewPanel.webview.options = getWebviewOptions(context.extensionUri);
+				QueryPanel.revive(webviewPanel, context.extensionUri);
+			},
+		});
+	}
 
 }
 

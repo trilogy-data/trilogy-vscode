@@ -4,8 +4,9 @@ from lark import ParseTree, Token as LarkToken
 from typing import List
 from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.parsing.parse_engine import PARSER, ParseToObjects
-from trilogy.core.models import SelectStatement, MultiSelectStatement, PersistStatement, Environment
+from trilogy.core.models import SelectStatement, MultiSelectStatement, PersistStatement, Environment, RawSQLStatement
 from trilogy.dialect.base import BaseDialect
+
 def extract_subtext(
     text: str, start_line: int, end_line: int, start_col: int, end_col: int
 ) -> str:
@@ -96,7 +97,7 @@ def code_lense_tree(text, input: ParseTree, dialect:BaseDialect)->List[CodeLens]
     environment = Environment()
     parsed = ParseToObjects(visit_tokens=True, text=text, environment=environment).transform(input)
     for idx, x in enumerate(parsed):
-        if isinstance(x, SelectStatement):
+        if isinstance(x, (PersistStatement, MultiSelectStatement, SelectStatement)):
             processed = dialect.generate_queries(environment, [x])
             sql = dialect.compile_statement(processed[-1])
             tokens.append(
@@ -110,6 +111,21 @@ def code_lense_tree(text, input: ParseTree, dialect:BaseDialect)->List[CodeLens]
 						title="Run Query",
 						command="trilogy.runQuery",
 						arguments=[sql],
+					)
+				)
+			)
+        elif isinstance(x, RawSQLStatement):
+            tokens.append(
+				CodeLens(
+					range = Range(
+						start=Position(line=x.meta.line_number-1, character=1),
+						end=Position(line=x.meta.line_number-1, character=10)
+					),
+                    data = {'idx': idx},
+					command = Command(
+						title="Run Query",
+						command="trilogy.runQuery",
+						arguments=[x.text],
 					)
 				)
 			)

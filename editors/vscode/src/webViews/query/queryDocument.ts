@@ -2,16 +2,8 @@ import * as vscode from 'vscode';
 import { Disposable } from '../dispose';
 
 import { Database, TableData } from "duckdb-async";
-import { ColumnDescription } from './common';
+import { ColumnDescription, IMessage } from './common';
 
-export interface IMessage {
-    type: 'query' | 'more';
-    success: boolean;
-    sql?: string
-    message?: string;
-    results?: TableData;
-    headers?: ColumnDescription[];
-}
 
 
 export class QueryDocument extends Disposable implements vscode.CustomDocument {
@@ -83,12 +75,32 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
     }
 
     runQuery(sql: string, limit: number, callback: (msg: IMessage) => void): void {
+        // check if it is a CALL statement
+        const checkSQL = sql.toLowerCase().trim();
+        console.log(checkSQL)
+        if (checkSQL.startsWith('call') || checkSQL.startsWith('install')  || checkSQL.startsWith('load')) {
+            console.log('running non_select')
+            callback({ type: 'query-parse', success: true, message: 'finished-parse' });
+            this.db.all(
+                sql,
+                (err: Error, res: any[]) => {
+                    if (err) {
+                        callback({ type: 'query', 'sql': sql, success: false, message: err.message, exception:err.message });
+                        return;
+                    }
+                    callback({ type: 'query', headers:[], 'sql': sql, success: true, results: this.cleanResults(res), exception: null });
+                }
+            );
+            return;
+        }
+
         // Fetch resulting column names and types
+
         this.db.all(
             `DESCRIBE (${sql.replace(';', '')});`,
             (err: Error, descRes: ColumnDescription[]) => {
                 if (err) {
-                    callback({ type: 'query', success: false, message: err.message });
+                    callback({ type: 'query-parse', success: false, message: err.message , exception:err.message });
                     return;
                 }
 
@@ -97,10 +109,10 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
                     this.formatSql(sql, limit, 0),
                     (err: Error, res: any[]) => {
                         if (err) {
-                            callback({ type: 'query', 'sql': sql,  success: false, message: err.message });
+                            callback({ type: 'query', 'sql': sql,  success: false, message: err.message, exception:err.message });
                             return;
                         }
-                        callback({ type: 'query', 'sql': sql, success: true, headers: descRes, results: this.cleanResults(res) });
+                        callback({ type: 'query', 'sql': sql, success: true, headers: descRes, results: this.cleanResults(res), exception: null });
                     }
                 );
             }

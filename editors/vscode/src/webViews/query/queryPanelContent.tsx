@@ -4,6 +4,7 @@ import React, { Component, createRef, FormEvent } from 'react'
 import { ColumnDescription } from './common'
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import sql from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
+import { tomorrowNight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 
 
 SyntaxHighlighter.registerLanguage('sql', sql);
@@ -16,6 +17,7 @@ interface QueryResultsState {
 	sql: string;
 	currentPage: number;
 	loading: boolean;
+	exception: string | null;
 }
 
 class QueryResults extends Component<{ headers: ColumnDescription[]; data: any[] }> {
@@ -85,6 +87,7 @@ class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
 			headers: [],
 			data: [],
 			sql: '',
+			exception: null,
 			currentPage: 1,
 			loading: false,
 		};
@@ -104,7 +107,26 @@ class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
 	render() {
 		// @ts-ignore
 		const { vscode } = this.props;
-		const { currentPage, headers, data, sql } = this.state;
+		const { currentPage, headers, data, loading, sql, exception} = this.state;
+		if (loading) {
+			return (
+				<div className="w-full min-h-screen  flex flex-col items-center">
+					<div className="w-full max-w-4xl p-6  shadow-md rounded-lg">
+						<h2 className="text-l font-semibold mb-2 text-white-700">Loading...</h2>
+					</div>
+				</div>
+			)
+		}
+ 		if (exception) {
+			return (
+				<div className="w-full min-h-screen  flex flex-col items-center">
+					<div className="w-full max-w-4xl p-6  shadow-md rounded-lg">
+						<h2 className="text-l font-semibold mb-2 text-white-700">Error</h2>
+						<p>{exception}</p>
+					</div>
+				</div>
+			)
+		}
 		const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 		const endIndex = startIndex + ITEMS_PER_PAGE;
 		const currentData = data.slice(startIndex, endIndex);
@@ -143,7 +165,7 @@ class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
 				</div>
 				<div className="w-full max-w-4xl p-6  shadow-md rounded-lg">
 					<h2 className="text-l font-semibold mb-2 text-white-700">SQL</h2>
-					<SyntaxHighlighter language="sql">
+					<SyntaxHighlighter language="sql" style={tomorrowNight} >
 						{sql}
 					</SyntaxHighlighter>
 				</div>
@@ -175,9 +197,27 @@ const queryWrapperRef = createRef<QueryWrapper>();
 				return;
 			case 'query':
 				if (queryWrapperRef.current) {
-					queryWrapperRef.current.setState({ data: message.results, headers: message.headers, sql: message.sql });
+					queryWrapperRef.current.setState({ data: message.results, headers: message.headers, sql: message.sql, loading: false, exception: message.exception });
 				}
-				break;
+				return;
+			case 'query-parse':
+				if (message.exception) {
+					if (queryWrapperRef.current) {
+						queryWrapperRef.current.setState({ loading: false, exception: message.exception });
+					}
+				}
+				else {
+					if (queryWrapperRef.current) {
+						queryWrapperRef.current.setState({ loading: true });
+					}
+				}
+				return;
+			case 'query-start':
+				console.log('query-start');
+				if (queryWrapperRef.current) {
+					queryWrapperRef.current.setState({ loading: true });
+				}
+				return;
 		}
 	});
 })();

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { getWebviewOptions, replaceWebviewHtmlTokens, getNonce } from '../utility';
-import { QueryDocument, IMessage } from './queryDocument';
+import { QueryDocument,  } from './queryDocument';
+import {IMessage } from './common';
 
 const utf8TextDecoder = new TextDecoder("utf8");
 
@@ -55,7 +56,11 @@ class QueryPanel {
     }
 
     public async runQuery(query: string) {
+        //notify the panel a query is running
+        this._panel.webview.postMessage({ type: 'query-start' });
         this._queryDocument.runQuery(query, 100, (msg: IMessage) => this._panel.webview.postMessage(msg));
+        // run then send results
+
     }
 
     public static async createOrShow(extensionUri: vscode.Uri) {

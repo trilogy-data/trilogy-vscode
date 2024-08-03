@@ -22,19 +22,37 @@
 		},
 		{
 			"include": "#concepts"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#sql-string"
 		}
 	],
 	"repository": {
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.trilogy",
-				"match": "(?i)\\b(order|by|desc|and|or|auto|nulls|first|last|limit|in|persist|show|select|filter|where|into|as|->|<-)\\b"
+				"match": "(?i)\\b(raw\\_sql|order|by|desc|and|or|auto|nulls|first|last|limit|in|persist|show|select|filter|where|into|as|->|<-)\\b"
 			},
 			{
 				"name": "keyword.control.import",
 				"match": "(?i)\\b(import)\\b"
 			}]
 		},
+		"raw-sql-expression": {
+			"begin": "(?i)\\b(raw_sql)\\(",
+			"end": "\\)",
+			"beginCaptures": {
+			  "0": { "name": "punctuation.paren.open" }
+			},
+			"endCaptures": {
+			  "0": { "name": "punctuation.paren.close" }
+			},
+			"name": "expression.group",
+			"patterns": [{ "include": "#expression" }]
+		  },
 		"concepts": {
 			"patterns": [{
 				"name": "support.variable",
@@ -90,7 +108,39 @@
 				"name": "entity.name.type.trilogy",
 				"match": "(?i)\\b(string|int|float)\\b"
 			}]
-		}
+		},
+		"comments":  {
+			"patterns": [
+				{
+					"begin": "#",
+					"end": "\\n",
+					"beginCaptures": {
+					  "0": { "name": "punctuation.definition.comment" }
+					},
+					"name": "comment.line.hash"
+				  }
+			]
+		},
+		"sql-string": {
+			"patterns": [
+			  {
+				"begin": "(\\b[A-Za-z_][A-Za-z_0-9]*)(\\s*\\.\\s*)(sql)(\\s*\\(\\s*)(\"\"\")",
+				"end": "\"\"\"",
+				"beginCaptures": {
+				  "1": { "name": "variable.other" },
+				  "3": { "name": "keyword.control.raw_sql" },
+				  "5": { "name": "punctuation.sql-block.open" }
+				},
+				"endCaptures": {
+				  "0": { "name": "punctuation.sql-block.close" }
+				},
+				"name": "source.sql",
+				"patterns": [
+				  { "include": "source.sql" }
+				]
+			  }
+			]
+		  }
 	},
 	"scopeName": "source.trilogy"
 }
