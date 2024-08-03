@@ -5,6 +5,7 @@ from typing import List
 from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.parsing.parse_engine import PARSER, ParseToObjects
 from trilogy.core.models import SelectStatement, MultiSelectStatement, PersistStatement
+from trilogy.dialect.base import BaseDialect
 def extract_subtext(
     text: str, start_line: int, end_line: int, start_col: int, end_col: int
 ) -> str:
@@ -88,11 +89,13 @@ def gen_tcode_lens(text, item: ParseTree) -> List[Token]:
     return tokens
 
 
-def code_lense_tree(text, input: ParseTree)->List[CodeLens]:
+def code_lense_tree(text, input: ParseTree, dialect:BaseDialect)->List[CodeLens]:
     tokens = []
     parsed = ParseToObjects().transform(input)
     for idx, x in enumerate(parsed):
         if isinstance(x, SelectStatement):
+            processed = dialect.generate_queries([x])
+            sql = dialect.compile_statement(processed[-1])
             tokens.append(
 				CodeLens(
 					range = Range(
@@ -103,7 +106,7 @@ def code_lense_tree(text, input: ParseTree)->List[CodeLens]:
 					command = Command(
 						title="Run Query",
 						command="codeLens.runQuery",
-						arguments=[idx],
+						arguments=[sql],
 					)
 				)
 			)

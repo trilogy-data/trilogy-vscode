@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import {getWebviewOptions} from './utility';
-import { QueryDocument, IMessage } from './queryDocument';
+import { QueryDocument, IMessage } from './query/queryDocument';
 
 
 const cats = {
@@ -17,7 +17,7 @@ class QueryPanel {
 	 */
 	public static currentPanel: QueryPanel | undefined;
 
-	public static readonly viewType = 'catCoding';
+	public static readonly viewType = 'queryPanel';
 
 	private readonly _panel: vscode.WebviewPanel;
 	private readonly _extensionUri: vscode.Uri;
@@ -38,7 +38,7 @@ class QueryPanel {
 		// Otherwise, create a new panel.
 		const panel = vscode.window.createWebviewPanel(
 			QueryPanel.viewType,
-			'Cat Coding',
+			'Trilogy Query',
 			column || vscode.ViewColumn.One,
 			getWebviewOptions(extensionUri),
 		);
@@ -153,7 +153,7 @@ class QueryPanel {
 
 		// Local path to css styles
 		const styleResetPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css');
-		const stylesPathMainPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css');
+		const stylesPathMainPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'trilogy.css');
 
 		// Uri to load styles into webview
 		const stylesResetUri = webview.asWebviewUri(styleResetPath);
@@ -161,7 +161,9 @@ class QueryPanel {
 
 		// Use a nonce to only allow specific scripts to be run
 		const nonce = getNonce();
-
+		const cssUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(vscode.Uri.joinPath(this._extensionUri, "dist/main.css")
+		  ));
 
 		return `<!DOCTYPE html>
 			<html lang="en">
@@ -180,19 +182,19 @@ class QueryPanel {
 
 	<link href="${stylesResetUri}" rel="stylesheet">
 	<link href="${stylesMainUri}" rel="stylesheet">
-
-	<title>Cat Coding</title>
+	
+	<title>Trilogy Query</title>
 </head>
 
 
 <body>
-	<img src="${catGifPath}" width="300" />
-	<h1 id="lines-of-code-counter">0</h1>
+	<div class="container mx-auto">
+		<h1>Enter Text</h1>
+		<input nonce="${nonce}" type="text" id="inputText" />
+		<button id="submitButton">Submit</button>
+		<h2>Response</h2>
+	</div>
 
-	<h1>Enter Text</h1>
-	<input nonce="${nonce}" type="text" id="inputText" />
-	<button id="submitButton">Submit</button>
-	<h2>Response</h2>
     <input nonce="${nonce}" type="text" id="responseText" readonly />
 	<script nonce="${nonce}">
 	// This script will be run inside the webview

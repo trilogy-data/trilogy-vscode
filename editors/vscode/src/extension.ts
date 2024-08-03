@@ -8,9 +8,10 @@ import {
 	LanguageClientOptions,
 	ServerOptions,
 } from 'vscode-languageclient';
-import QueryPanel from './webViews/panel';
+import QueryPanel from './webViews/query/queryPanel';
 import * as vscode from 'vscode';
 import {getWebviewOptions} from './webViews/utility';
+import { ConfigViewProvider } from "./webViews/config/config-view-provider";
 let client: LanguageClient;
 
 function getClientOptions(): LanguageClientOptions {
@@ -62,12 +63,11 @@ function registerUI(context: ExtensionContext) {
   context.subscriptions.push(
 		vscode.commands.registerCommand('trilogy.runQuery', () => {
 			QueryPanel.createOrShow(context.extensionUri);
+      
 		})
 	);
 
-
-
-  // Keep this for how to interact with webView
+    // Keep this for how to interact with webView
 	// context.subscriptions.push(
 	// 	vscode.commands.registerCommand('trilogy.refresh', () => {
 	// 		if (QueryPanel.currentPanel) {
@@ -76,16 +76,16 @@ function registerUI(context: ExtensionContext) {
 	// 	})
 	// );
 
-	if (vscode.window.registerWebviewPanelSerializer) {
-		// Make sure we register a serializer in activation event
-		vscode.window.registerWebviewPanelSerializer(QueryPanel.viewType, {
-			async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
-				// Reset the webview options so we use latest uri for `localResourceRoots`.
-				webviewPanel.webview.options = getWebviewOptions(context.extensionUri);
-				QueryPanel.revive(webviewPanel, context.extensionUri);
-			},
-		});
-	}
+	// if (vscode.window.registerWebviewPanelSerializer) {
+	// 	// Make sure we register a serializer in activation event
+	// 	vscode.window.registerWebviewPanelSerializer(QueryPanel.viewType, {
+	// 		async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+	// 			// Reset the webview options so we use latest uri for `localResourceRoots`.
+	// 			webviewPanel.webview.options = getWebviewOptions(context.extensionUri);
+	// 			QueryPanel.revive(webviewPanel, context.extensionUri);
+	// 		},
+	// 	});
+	// }
 
 }
 
@@ -97,16 +97,19 @@ export function activate(context: ExtensionContext) {
 	} else {
 		// Production - Distribute the LS as a separate package or within the extension?
 		const cwd = path.join(__dirname);
-
 		// get the vscode python.pythonPath config variable
 		const pythonPath = workspace.getConfiguration('python').get<string>('pythonPath');
 		if (!pythonPath) {
 			throw new Error('`python.pythonPath` is not set');
 		}
-
 		client = startLangServer(pythonPath, ['-m', 'trilogy_language_server'], cwd);
 	}	
-  
+
+  const configViewProvider = new ConfigViewProvider(context.extensionUri);
+  vscode.window.registerWebviewViewProvider(
+    ConfigViewProvider.viewType,
+    configViewProvider
+  )
   context.subscriptions.push(client.start());
 }
 

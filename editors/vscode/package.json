@@ -5,13 +5,28 @@
 	"repository": "https://github.com/trilogydata/trilogy-language-server",
 	"license": "MIT",
 	"version": "0.1.0",
+	"publisher": "trilogydata",
 	"engines": {
-		"vscode": "^1.43.0"
+		"vscode": "^1.73.0"
 	},
 	"categories": [
 		"Programming Languages"
 	],
+	"activationEvents": [
+		"onLanguage:trilogy",
+		"onCommand:trilogy.runQuery"
+	],
 	"contributes": {
+
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "trilogy",
+					"title": "Trilogy",
+					"icon": "$(trilogy-trilogy)"
+				}
+			]
+		},
 		"languages": [
 			{
 				"id": "trilogy",
@@ -34,43 +49,77 @@
 		"commands": [
 			{
 				"command": "trilogy.runQuery",
-				"title": "Run a query against a local DuckDB",
+				"title": "Run Query",
 				"category": "Trilogy Query"
 			}
 		],
 		"configuration": {
 			"type": "object",
 			"title": "trilogy Language Server Configuration",
-            "properties": {
+			"properties": {
 				"trilogyLanguageServer.someConfig": {
 					"scope": "resource",
 					"type": "string",
 					"default": "some default."
 				}
-            }
-        },
-        "customEditors": [
-        ]
+			}
+		},
+		"icons": {
+			"trilogy-trilogy": {
+				"description": "trilogy icon",
+				"default": {
+					"fontPath": "dist/trilogyicons.woff2",
+					"fontCharacter": "\\f101"
+				}
+			}
+		},
+		"views": {
+			"trilogy": [
+				{
+					"type": "webview",
+					"id": "trilogy.configView",
+					"name": "Configure2",
+					"contextualTitle": "Trilogy Query",
+					"icon": "$(trilogy-trilogy)",
+					"initialSize": 6,
+					"visibility": "visible"
+				}
+			]
+		},
+		"customEditors": []
 	},
-	"main": "./out/extension",
+	"main": "./dist/extension.js",
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint \"src/**/*.ts\"",
-		"package": "vsce package --out trilogy_tools.vsix"
+		"package": "vsce package --out trilogy_tools.vsix",
+		"watch:esbuild": "node esbuild.mjs --watch",
+		"icons:svgo": "svgo -q -f ./images/icons/ --config svgo.config.js",
+		"build:icons": "npm run icons:svgo && fantasticon",
+		"build:css": "tailwindcss -i ./src/media/input.css -o ./dist/output.css --watch"
 	},
 	"dependencies": {
-		"duckdb": "^1.0.0",
+		"@types/react": "^18.3.3",
+		"@types/react-dom": "^18.3.0",
+		"duckdb-async": "^1.0.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
 		"vscode-languageclient": "^6.1.3"
 	},
 	"devDependencies": {
+		"@types/mocha": "^10.0.6",
 		"@types/node": "^18",
 		"@types/vscode": "^1.73.0",
 		"@types/vscode-webview": "^1.57.0",
 		"@typescript-eslint/eslint-plugin": "^7.14.0",
 		"@typescript-eslint/parser": "^7.14.0",
+		"@vscode/test-electron": "^2.3.9",
+		"esbuild": "0.23.0",
 		"eslint": "^8.57.0",
-		"typescript": "^5.5.2"
+		"tailwindcss": "^3.4.7",
+		"typescript": "^5.5.2",
+		"svgo": "^3.3.2"
 	}
 }
