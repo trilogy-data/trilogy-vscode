@@ -159,11 +159,11 @@ def code_lens(ls: TrilogyLanguageServer, params: CodeLensParams):
     return ls.code_lens.get(document_uri, [])
 
 
-@trilogy_server.thread()
-@trilogy_server.command(trilogy_server.CODE_LENS_RESOLVE)
-def count_down_10_seconds_blocking(ls, *args):
-    # Omitted
-    pass
+# @trilogy_server.thread()
+# @trilogy_server.command(trilogy_server.CODE_LENS_RESOLVE)
+# def count_down_10_seconds_blocking(ls, *args):
+#     # Omitted
+#     pass
 
 
 @trilogy_server.feature(CODE_LENS_RESOLVE)
