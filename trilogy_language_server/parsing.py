@@ -3,9 +3,16 @@ from trilogy.parsing.parse_engine import PARSER
 from lark import ParseTree, Token as LarkToken
 from typing import List
 from lsprotocol.types import CodeLens, Range, Position, Command
-from trilogy.parsing.parse_engine import PARSER, ParseToObjects
-from trilogy.core.models import SelectStatement, MultiSelectStatement, PersistStatement, Environment, RawSQLStatement
+from trilogy.parsing.parse_engine import ParseToObjects
+from trilogy.core.models import (
+    SelectStatement,
+    MultiSelectStatement,
+    PersistStatement,
+    Environment,
+    RawSQLStatement,
+)
 from trilogy.dialect.base import BaseDialect
+
 
 def extract_subtext(
     text: str, start_line: int, end_line: int, start_col: int, end_col: int
@@ -46,8 +53,8 @@ def gen_tokens(text, item: ParseTree) -> List[Token]:
                 text=extract_subtext(
                     text, item.line, item.end_line, item.column - 1, item.end_column - 1
                 ),
-                tok_type='variable',
-                tok_modifiers = [TokenModifier.definition]
+                tok_type="variable",
+                tok_modifiers=[TokenModifier.definition],
             )
         )
     else:
@@ -56,16 +63,18 @@ def gen_tokens(text, item: ParseTree) -> List[Token]:
     return tokens
 
 
-def parse_tree(text, input: ParseTree)->List[Token]:
+def parse_tree(text, input: ParseTree) -> List[Token]:
     tokens = []
     for x in input.children:
         tokens += gen_tokens(text, x)
     return tokens
 
-def gen_tree(text: str)->ParseTree:
+
+def gen_tree(text: str) -> ParseTree:
     return PARSER.parse(text)
 
-def parse_text(text: str)->List[Token]:
+
+def parse_text(text: str) -> List[Token]:
     parsed: ParseTree = gen_tree(text)
     return parse_tree(parsed)
 
@@ -92,41 +101,43 @@ def parse_text(text: str)->List[Token]:
 #     return tokens
 
 
-def code_lense_tree(text, input: ParseTree, dialect:BaseDialect)->List[CodeLens]:
+def code_lense_tree(text, input: ParseTree, dialect: BaseDialect) -> List[CodeLens]:
     tokens = []
     environment = Environment()
-    parsed = ParseToObjects(visit_tokens=True, text=text, environment=environment).transform(input)
+    parsed = ParseToObjects(
+        visit_tokens=True, text=text, environment=environment
+    ).transform(input)
     for idx, x in enumerate(parsed):
         if isinstance(x, (PersistStatement, MultiSelectStatement, SelectStatement)):
             processed = dialect.generate_queries(environment, [x])
             sql = dialect.compile_statement(processed[-1])
             tokens.append(
-				CodeLens(
-					range = Range(
-						start=Position(line=x.meta.line_number-1, character=1),
-						end=Position(line=x.meta.line_number-1, character=10)
-					),
-                    data = {'idx': idx},
-					command = Command(
-						title="Run Query",
-						command="trilogy.runQuery",
-						arguments=[sql],
-					)
-				)
-			)
+                CodeLens(
+                    range=Range(
+                        start=Position(line=x.meta.line_number - 1, character=1),
+                        end=Position(line=x.meta.line_number - 1, character=10),
+                    ),
+                    data={"idx": idx},
+                    command=Command(
+                        title="Run Query",
+                        command="trilogy.runQuery",
+                        arguments=[sql],
+                    ),
+                )
+            )
         elif isinstance(x, RawSQLStatement):
             tokens.append(
-				CodeLens(
-					range = Range(
-						start=Position(line=x.meta.line_number-1, character=1),
-						end=Position(line=x.meta.line_number-1, character=10)
-					),
-                    data = {'idx': idx},
-					command = Command(
-						title="Run Query",
-						command="trilogy.runQuery",
-						arguments=[x.text],
-					)
-				)
-			)
+                CodeLens(
+                    range=Range(
+                        start=Position(line=x.meta.line_number - 1, character=1),
+                        end=Position(line=x.meta.line_number - 1, character=10),
+                    ),
+                    data={"idx": idx},
+                    command=Command(
+                        title="Run Query",
+                        command="trilogy.runQuery",
+                        arguments=[x.text],
+                    ),
+                )
+            )
     return tokens

@@ -1,10 +1,10 @@
 {
 	"name": "vscode-trilogy-tools",
-	"description": "trilogy language server client",
+	"description": "Tools for working with Trilogy, the better SQL",
 	"author": "N/A",
 	"repository": "https://github.com/trilogydata/trilogy-language-server",
 	"license": "MIT",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"publisher": "trilogydata",
 	"engines": {
 		"vscode": "^1.73.0"
@@ -36,7 +36,6 @@
 					".preql"
 				],
 				"configuration": "./language-configuration.json"
-
 			}
 		],
 		"grammars": [
@@ -46,7 +45,7 @@
 				"path": "./syntaxes/trilogy.tmLanguage.json",
 				"embeddedLanguages": {
 					"meta.embedded.block.sql": "sql"
-				  }
+				}
 			}
 		],
 		"commands": [
@@ -81,8 +80,8 @@
 				{
 					"type": "webview",
 					"id": "trilogy.configView",
-					"name": "Configure2",
-					"contextualTitle": "Trilogy Query",
+					"name": "Configure",
+					"contextualTitle": "Trilgy Config",
 					"icon": "$(trilogy-trilogy)",
 					"initialSize": 6,
 					"visibility": "visible"
@@ -93,7 +92,7 @@
 	},
 	"main": "./dist/extension.js",
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "node build-backend.js && npm run compile",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint \"src/**/*.ts\"",
@@ -107,6 +106,7 @@
 		"@types/react": "^18.3.3",
 		"@types/react-dom": "^18.3.0",
 		"@types/react-syntax-highlighter": "^15.5.13",
+		"dotenv": "^16.4.5",
 		"duckdb-async": "^1.0.0",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",

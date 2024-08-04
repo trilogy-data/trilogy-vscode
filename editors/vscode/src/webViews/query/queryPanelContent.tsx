@@ -190,7 +190,7 @@ const queryWrapperRef = createRef<QueryWrapper>();
 
 	window.addEventListener('message', event => {
 		const message = event.data;
-		console.log('Received', message);
+
 		switch (message.type) {
 			case "initialize":
 				initialize();

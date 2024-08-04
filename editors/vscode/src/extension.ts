@@ -26,7 +26,8 @@ function getClientOptions(): LanguageClientOptions {
 }
 
 function isStartedInDebugMode(): boolean {
-	return process.env.VSCODE_DEBUG_MODE === 'true';
+	return false
+	// return process.env.VSCODE_DEBUG_MODE === 'true';
 }
 
 function startLangServerTCP(addr: number): LanguageClient {
@@ -78,16 +79,16 @@ function registerUI(context: ExtensionContext) {
 	// 	})
 	// );
 
-	if (vscode.window.registerWebviewPanelSerializer) {
-		// Make sure we register a serializer in activation event
-		vscode.window.registerWebviewPanelSerializer(QueryPanel.viewType, {
-			async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
-				// Reset the webview options so we use latest uri for `localResourceRoots`.
-				webviewPanel.webview.options = getWebviewOptions(context.extensionUri);
-				QueryPanel.revive(webviewPanel, context.extensionUri);
-			},
-		});
-	}
+	// if (vscode.window.registerWebviewPanelSerializer) {
+	// 	// Make sure we register a serializer in activation event
+	// 	vscode.window.registerWebviewPanelSerializer(QueryPanel.viewType, {
+	// 		async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+	// 			// Reset the webview options so we use latest uri for `localResourceRoots`.
+	// 			webviewPanel.webview.options = getWebviewOptions(context.extensionUri);
+	// 			QueryPanel.revive(webviewPanel, context.extensionUri);
+	// 		},
+	// 	});
+	// }
 
 }
 
@@ -99,12 +100,8 @@ export function activate(context: ExtensionContext) {
 	} else {
 		// Production - Distribute the LS as a separate package or within the extension?
 		const cwd = path.join(__dirname);
-		// get the vscode python.pythonPath config variable
-		const pythonPath = workspace.getConfiguration('python').get<string>('pythonPath');
-		if (!pythonPath) {
-			throw new Error('`python.pythonPath` is not set');
-		}
-		client = startLangServer(pythonPath, ['-m', 'trilogy_language_server'], cwd);
+		const serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server.exe');
+		client = startLangServer(serverPath, [], cwd);
 	}	
 
   const configViewProvider = new ConfigViewProvider(context.extensionUri);

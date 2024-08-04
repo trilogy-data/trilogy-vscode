@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { getWebviewOptions, replaceWebviewHtmlTokens, getNonce } from '../utility';
-import { QueryDocument,  } from './queryDocument';
-import {IMessage } from './common';
+import { QueryDocument, } from './queryDocument';
+import { IMessage } from './common';
 
 const utf8TextDecoder = new TextDecoder("utf8");
 
@@ -15,12 +15,14 @@ class QueryPanel {
 
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionUri: vscode.Uri;
+    private _last_msg: IMessage | null;
     private _queryDocument!: QueryDocument;
     private _disposables: vscode.Disposable[] = [];
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
         this._panel = panel;
         this._extensionUri = extensionUri;
+        this._last_msg = null;
 
         // Listen for when the panel is disposed
         // This happens when the user closes the panel or when the panel is closed programmatically
@@ -58,7 +60,7 @@ class QueryPanel {
     public async runQuery(query: string) {
         //notify the panel a query is running
         this._panel.webview.postMessage({ type: 'query-start' });
-        this._queryDocument.runQuery(query, 100, (msg: IMessage) => this._panel.webview.postMessage(msg));
+        this._queryDocument.runQuery(query, 100, (msg: IMessage) => { this._last_msg = msg; this._panel.webview.postMessage(msg) });
         // run then send results
 
     }
@@ -70,11 +72,13 @@ class QueryPanel {
 
         // If we already have a panel, show it.
         if (QueryPanel.currentPanel) {
+            console.log('resuing pane')
             QueryPanel.currentPanel._panel.reveal(column);
             return QueryPanel.currentPanel;
         }
 
         // Otherwise, create a new panel.
+        console.log("creating new panel")
         const panel = vscode.window.createWebviewPanel(
             QueryPanel.viewType,
             'Trilogy Query',
@@ -127,7 +131,12 @@ class QueryPanel {
 
     private async _update() {
         const webview = this._panel.webview;
-        this._panel.webview.html = await this._getHtmlForWebview(webview);
+        if (!this._panel.webview.html) {
+            this._panel.webview.html = await this._getHtmlForWebview(webview);
+        }
+        if (this._last_msg) {
+            this._panel.webview.postMessage(this._last_msg);
+        }
     }
 
     private getRootUri() {
@@ -159,6 +168,7 @@ class QueryPanel {
             cssUri: cssUri.toString(),
             jsUri: jsUri.toString(),
         });
+
 
         return html;
     }

@@ -15,45 +15,32 @@ from lsprotocol.types import (
     SemanticTokens,
     CompletionOptions,
     SemanticTokensLegend,
-    SemanticTokenModifiers,
     SemanticTokensParams,
     DocumentFormattingParams,
     TEXT_DOCUMENT_FORMATTING,
     TEXT_DOCUMENT_CODE_LENS,
-    TEXT_DOCUMENT_CODE_ACTION,
     CodeLensParams,
     CODE_LENS_RESOLVE,
-	
-    WORKSPACE_CODE_LENS_REFRESH,
     Command,
-    CodeLensResolveRequest,
-    Range,
-    Position,
-    WorkspaceEdit,
-    TextDocumentEdit,
-    OptionalVersionedTextDocumentIdentifier,
-    TextEdit,
-    CodeLens
-    
+    CodeLens,
 )
 from functools import reduce
 from typing import Dict, List
-import enum
-from .error_reporting import get_diagnostics
-from pydantic import BaseModel, Field
-from functools import reduce
+from trilogy_language_server.error_reporting import get_diagnostics
 import operator
 from lark import ParseTree
 from trilogy_language_server.models import TokenModifier, Token
 from trilogy_language_server.parsing import parse_tree, code_lense_tree
 from trilogy.parsing.render import Renderer
-from trilogy.parsing.parse_engine import PARSER, ParseToObjects
+from trilogy.parsing.parse_engine import ParseToObjects
 from trilogy.core.models import Environment
 from trilogy.dialect.duckdb import DuckDBDialect
 import re
+
 TokenTypes = ["keyword", "variable", "function", "operator", "parameter", "type"]
 
 ADDITION = re.compile(r"^\s*(\d+)\s*\+\s*(\d+)\s*=(?=\s*$)")
+
 
 class TrilogyLanguageServer(LanguageServer):
     CONFIGURATION_SECTION = "trilogyLanguageServer"
@@ -78,8 +65,9 @@ class TrilogyLanguageServer(LanguageServer):
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
         self.tokens[uri] = parse_tree(original_text, raw_tree)
-        
-    def publish_code_lens(self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
+
+    def publish_code_lens(
+        self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
         self.code_lens[uri] = code_lense_tree(original_text, raw_tree, self.dialect)
 
@@ -95,7 +83,12 @@ def format_document(ls: LanguageServer, params: DocumentFormattingParams):
     doc = ls.workspace.get_text_document(params.text_document.uri)
     r = Renderer()
     env = Environment()
-    return '\n'.join([r.to_string(v) for v in ParseToObjects(visit_tokens=True, text=doc, environment=env)] )
+    return "\n".join(
+        [
+            r.to_string(v)
+            for v in ParseToObjects(visit_tokens=True, text=doc, environment=env)
+        ]
+    )
 
 
 @trilogy_server.feature(
@@ -155,8 +148,6 @@ def semantic_tokens_full(ls: TrilogyLanguageServer, params: SemanticTokensParams
     return SemanticTokens(data=data)
 
 
-
-
 @trilogy_server.feature(TEXT_DOCUMENT_CODE_LENS)
 def code_lens(ls: TrilogyLanguageServer, params: CodeLensParams):
     """Return a list of code lens to insert into the given document.
@@ -164,32 +155,15 @@ def code_lens(ls: TrilogyLanguageServer, params: CodeLensParams):
     This method will read the whole document and identify each sum in the document and
     tell the language client to insert a code lens at each location.
     """
-    items = []
     document_uri = params.text_document.uri
-    # document = trilogy_server.workspace.get_text_document(document_uri)
-
-    # lines = document.lines
-    # for idx, line in enumerate(lines):
-    #     match = ADDITION.match(line)
-    #     if match is not None:
-    #         range_ = Range(
-    #             start=Position(line=idx, character=0),
-    #             end=Position(line=idx, character=len(line) - 1),
-    #         )
-    #         left = int(match.group(1))
-    #         right = int(match.group(2))
-
-    #         code_lens = CodeLens(
-    #             range=range_,
-    #             data={
-    #                 "left": left,
-    #                 "right": right,
-    #                 "uri": document_uri,
-    #             },
-    #         )
-    #         items.append(code_lens)
-
     return ls.code_lens.get(document_uri, [])
+
+
+@trilogy_server.thread()
+@trilogy_server.command(trilogy_server.CODE_LENS_RESOLVE)
+def count_down_10_seconds_blocking(ls, *args):
+    # Omitted
+    pass
 
 
 @trilogy_server.feature(CODE_LENS_RESOLVE)
@@ -224,8 +198,11 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
 # def evaluate_sum(ls: LanguageServer, args):
 #     ls.show_message_log("arguments: %s", args)
 
-    
 
 #     get_query()
 #     # Apply the edit.
-#     ls.apply_edit(WorkspaceEdit(document_changes=[edit])) 	
+#     ls.apply_edit(WorkspaceEdit(document_changes=[edit]))
+
+
+if __name__ == "__main__":
+    trilogy_server.start_tcp()

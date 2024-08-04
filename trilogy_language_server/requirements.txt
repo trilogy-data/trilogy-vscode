@@ -1,0 +1,11 @@
+pygls
+pytrilogy
+pytrilogy-nlp
+google-cloud-bigquery
+sqlalchemy-bigquery
+duckdb
+duckdb-engine
+python-dotenv
+pytrilogy-nlp>=0.0.19
+langchain-openai
+langchain-community

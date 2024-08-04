@@ -2,10 +2,6 @@ from typing import List, Union, Tuple
 import logging
 from lark import UnexpectedToken, ParseTree
 from lsprotocol.types import (
-    TEXT_DOCUMENT_COMPLETION,
-    CompletionItem,
-    CompletionList,
-    CompletionParams,
     Diagnostic,
     Position,
     Range,
@@ -27,6 +23,7 @@ def user_repr(error: Union[UnexpectedToken]):
 def get_diagnostics(doctext: str) -> Tuple[ParseTree | None, List[Diagnostic]]:
     diagnostics: List[Diagnostic] = []
     parse_tree = None
+
     def on_error(e: UnexpectedToken):
         diagnostics.append(
             Diagnostic(
