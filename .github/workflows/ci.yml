@@ -2,7 +2,7 @@ name: CI
 on:
   push:
     branches:
-      - "test-build"
+      - "mvp"
     tags:
       - "v*"
 
