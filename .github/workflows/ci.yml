@@ -34,7 +34,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - shell: pwsh
         run: echo "target=${{ matrix.platform }}" >> $env:GITHUB_ENV
-      - run: npx vsce package --target ${{ env.target }}
+      - run: npx vsce package --target ${{ env.target }}-x64
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.target }}
