@@ -92,7 +92,7 @@
 	},
 	"main": "./dist/extension.js",
 	"scripts": {
-		"vscode:prepublish": "node build-backend.js && npm run compile",
+		"vscode:prepublish": "node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint \"src/**/*.ts\"",
