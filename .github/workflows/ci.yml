@@ -43,6 +43,9 @@ jobs:
           path: "./editors/vscode/*.vsix"
 
   publish:
+    environment:
+      name: release
+      url: https://pypi.org/p/pytrilogy-vscode
     runs-on: ubuntu-latest
     needs: build
     if: success()
