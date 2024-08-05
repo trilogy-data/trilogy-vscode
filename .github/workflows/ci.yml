@@ -30,7 +30,7 @@ jobs:
           python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 21.x
       - run: npm install
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
