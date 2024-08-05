@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Any
 import logging
 from lark import UnexpectedToken, ParseTree
 from lsprotocol.types import (
@@ -20,11 +20,11 @@ def user_repr(error: Union[UnexpectedToken]):
         return str(error)
 
 
-def get_diagnostics(doctext: str) -> Tuple[ParseTree | None, List[Diagnostic]]:
+def get_diagnostics(doctext: str) -> Tuple[Union[ParseTree, None], List[Diagnostic]]:
     diagnostics: List[Diagnostic] = []
     parse_tree = None
 
-    def on_error(e: UnexpectedToken):
+    def on_error(e: UnexpectedToken) -> Any:
         diagnostics.append(
             Diagnostic(
                 Range(
@@ -36,7 +36,7 @@ def get_diagnostics(doctext: str) -> Tuple[ParseTree | None, List[Diagnostic]]:
         return True
 
     try:
-        parse_tree = PARSER.parse(doctext, on_error=on_error)
+        parse_tree = PARSER.parse(doctext, on_error=on_error)  # type: ignore
     except Exception:
         logging.exception("parser raised exception")
     return parse_tree, diagnostics

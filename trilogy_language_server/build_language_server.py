@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from os import environ
 from platform import system
+from typing import List
 
 # Get the root directory of the project
 root = Path(__file__).parent
@@ -44,7 +45,7 @@ requirements = root / "requirements.txt"
 if __name__ == "__main__":
     print(f"{python_path}/{parent}/python")
 
-    prefixes: list[str] = []
+    prefixes: List[str] = []
     # Command to execute
     setup_command = prefixes + [
         f"{python_path}",

@@ -1,7 +1,7 @@
 from trilogy_language_server.models import Token, TokenModifier
 from trilogy.parsing.parse_engine import PARSER
 from lark import ParseTree, Token as LarkToken
-from typing import List
+from typing import List, Union
 from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.parsing.parse_engine import ParseToObjects
 from trilogy.core.models import (
@@ -43,16 +43,18 @@ def extract_subtext(
     return subtext
 
 
-def gen_tokens(text, item: ParseTree) -> List[Token]:
+def gen_tokens(text, item: Union[ParseTree, LarkToken]) -> List[Token]:
     tokens = []
     if isinstance(item, LarkToken):
+        line = item.line or 0
+        end_line = item.end_line or 1
+        column = item.column or 1
+        end_column = item.end_column or 2
         tokens.append(
             Token(
-                line=item.line,
-                offset=item.column,
-                text=extract_subtext(
-                    text, item.line, item.end_line, item.column - 1, item.end_column - 1
-                ),
+                line=line,
+                offset=column,
+                text=extract_subtext(text, line, end_line, column - 1, end_column - 1),
                 tok_type="variable",
                 tok_modifiers=[TokenModifier.definition],
             )
@@ -76,7 +78,7 @@ def gen_tree(text: str) -> ParseTree:
 
 def parse_text(text: str) -> List[Token]:
     parsed: ParseTree = gen_tree(text)
-    return parse_tree(parsed)
+    return parse_tree(text, parsed)
 
 
 # def gen_code_lens(text, item: ParseTree) -> List[Token]:
@@ -111,11 +113,14 @@ def code_lense_tree(text, input: ParseTree, dialect: BaseDialect) -> List[CodeLe
         if isinstance(x, (PersistStatement, MultiSelectStatement, SelectStatement)):
             processed = dialect.generate_queries(environment, [x])
             sql = dialect.compile_statement(processed[-1])
+            if not x.meta:
+                continue
+            line = x.meta.line_number or 1
             tokens.append(
                 CodeLens(
                     range=Range(
-                        start=Position(line=x.meta.line_number - 1, character=1),
-                        end=Position(line=x.meta.line_number - 1, character=10),
+                        start=Position(line=line - 1, character=1),
+                        end=Position(line=line - 1, character=10),
                     ),
                     data={"idx": idx},
                     command=Command(
@@ -126,11 +131,14 @@ def code_lense_tree(text, input: ParseTree, dialect: BaseDialect) -> List[CodeLe
                 )
             )
         elif isinstance(x, RawSQLStatement):
+            if not x.meta:
+                continue
+            line = x.meta.line_number or 1
             tokens.append(
                 CodeLens(
                     range=Range(
-                        start=Position(line=x.meta.line_number - 1, character=1),
-                        end=Position(line=x.meta.line_number - 1, character=10),
+                        start=Position(line=line - 1, character=1),
+                        end=Position(line=line - 1, character=10),
                     ),
                     data={"idx": idx},
                     command=Command(

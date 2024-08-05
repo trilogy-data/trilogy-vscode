@@ -25,14 +25,14 @@ from lsprotocol.types import (
     CodeLens,
 )
 from functools import reduce
-from typing import Dict, List
+from typing import Dict, List, Optional
 from trilogy_language_server.error_reporting import get_diagnostics
 import operator
 from lark import ParseTree
 from trilogy_language_server.models import TokenModifier, Token
 from trilogy_language_server.parsing import parse_tree, code_lense_tree
 from trilogy.parsing.render import Renderer
-from trilogy.parsing.parse_engine import ParseToObjects
+from trilogy.parsing.parse_engine import ParseToObjects, PARSER
 from trilogy.core.models import Environment
 from trilogy.dialect.duckdb import DuckDBDialect
 import re
@@ -45,14 +45,17 @@ ADDITION = re.compile(r"^\s*(\d+)\s*\+\s*(\d+)\s*=(?=\s*$)")
 class TrilogyLanguageServer(LanguageServer):
     CONFIGURATION_SECTION = "trilogyLanguageServer"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(name="trilogy-lang-server", version="v0.1")
         self.tokens: Dict[str, List[Token]] = {}
         self.code_lens: Dict[str, List[CodeLens]] = {}
         self.environment = Environment()
         self.dialect = DuckDBDialect()
 
-    def _validate(self: "TrilogyLanguageServer", params: DidChangeTextDocumentParams):
+    def _validate(
+        self: "TrilogyLanguageServer",
+        params: t.Union[DidChangeTextDocumentParams, DidOpenTextDocumentParams],
+    ):
         self.show_message_log("Validating document...")
         text_doc = self.workspace.get_document(params.text_document.uri)
         raw_tree, diagnostics = get_diagnostics(text_doc.source)
@@ -86,7 +89,9 @@ def format_document(ls: LanguageServer, params: DocumentFormattingParams):
     return "\n".join(
         [
             r.to_string(v)
-            for v in ParseToObjects(visit_tokens=True, text=doc, environment=env)
+            for v in ParseToObjects(
+                visit_tokens=True, text=doc.source, environment=env
+            ).transform(PARSER.parse(doc.source))
         ]
     )
 
@@ -94,9 +99,10 @@ def format_document(ls: LanguageServer, params: DocumentFormattingParams):
 @trilogy_server.feature(
     TEXT_DOCUMENT_COMPLETION, CompletionOptions(trigger_characters=[","])
 )
-def completions(ls: TrilogyLanguageServer, params: CompletionParams = None):
+def completions(ls: TrilogyLanguageServer, params: Optional[CompletionParams] = None):
     """Returns completion items."""
-    ls.show_message_log("completion called @ {}".format(params.position))
+    if params is not None:
+        ls.show_message_log("completion called @ {}".format(params.position))
     items: t.List[CompletionItem] = []
     return CompletionList(False, items)
 
@@ -125,7 +131,7 @@ async def did_open(ls: TrilogyLanguageServer, params: DidOpenTextDocumentParams)
     TEXT_DOCUMENT_SEMANTIC_TOKENS_FULL,
     SemanticTokensLegend(
         token_types=TokenTypes,
-        token_modifiers=[m.name for m in TokenModifier],
+        token_modifiers=[m.name for m in TokenModifier],  # type: ignore
     ),
 )
 def semantic_tokens_full(ls: TrilogyLanguageServer, params: SemanticTokensParams):
@@ -173,8 +179,8 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
     Using the ``data`` that was attached to the code lens item created in the function
     above, this prepares an invocation of the ``evaluateSum`` command below.
     """
-    # ls.show_message_log("Resolving code lens: %s", item)
-
+    ls.show_message_log("Resolving code lens: %s", item)
+    assert item.data is not None
     left = item.data["left"]
     right = item.data["right"]
     uri = item.data["uri"]
@@ -202,7 +208,3 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
 #     get_query()
 #     # Apply the edit.
 #     ls.apply_edit(WorkspaceEdit(document_changes=[edit]))
-
-
-if __name__ == "__main__":
-    trilogy_server.start_tcp()
