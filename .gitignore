@@ -8,3 +8,5 @@ trilogy_language_server/build
 dist
 .ruff_cache
 .pytest_cache
+python.tmLanguage.json
+converterPython.tmLanguage.xml
