@@ -18,10 +18,36 @@ jobs:
         include:
           - os: windows-latest
             platform: win32
+            arch: x64
+            npm_config_arch: x64
+          - os: windows-latest
+            platform: win32
+            arch: arm64
+            npm_config_arch: arm
           - os: ubuntu-latest
             platform: linux
+            arch: x64
+            npm_config_arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
+            npm_config_arch: arm64
+          - os: ubuntu-latest
+            platform: linux
+            arch: armhf
+            npm_config_arch: arm
+          - os: ubuntu-latest
+            platform: alpine
+            arch: x64
+            npm_config_arch: x64
           - os: macos-latest
             platform: darwin
+            arch: x64
+            npm_config_arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            npm_config_arch: arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -35,8 +61,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - shell: pwsh
-        run: echo "target=${{ matrix.platform }}" >> $env:GITHUB_ENV
-      - run: npx @vscode/vsce package --target ${{ env.target }}-x64
+        run: echo "target=${{ matrix.platform }}-${{matrix.arch}}" >> $env:GITHUB_ENV
+      - run: npx @vscode/vsce package --target ${{ env.target }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.target }}

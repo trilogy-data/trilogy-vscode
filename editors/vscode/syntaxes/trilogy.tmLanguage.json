@@ -135,105 +135,6 @@
 			]
 		}]
 		},
-		"keywords": {
-			"patterns": [
-				{
-					"name": "keyword.control.trilogy",
-					"match": "(?i)\\b(raw\\_sql|order|by|desc|and|or|auto|nulls|first|last|address|limit|in|persist|grain|show|select|filter|where|into|as|->|<-)\\b"
-				},
-				{
-					"name": "keyword.control.import",
-					"match": "(?i)\\b(import)\\b"
-				}
-			]
-		},
-		"raw-sql-expression": {
-			"begin": "(?i)\\b(raw_sql)\\(",
-			"end": "\\)",
-			"beginCaptures": {
-				"0": {
-					"name": "punctuation.paren.open"
-				}
-			},
-			"endCaptures": {
-				"0": {
-					"name": "punctuation.paren.close"
-				}
-			},
-			"name": "expression.group",
-			"patterns": [
-				{
-					"include": "#expression"
-				}
-			]
-		},
-		"concepts": {
-			"patterns": [
-				{
-					"name": "support.variable",
-					"match": "(?i)\\b(key|property|metric|auto)\\b"
-				}
-			]
-		},
-		"strings": {
-			"name": "string.quoted.double.trilogy",
-			"begin": "\"",
-			"end": "\"",
-			"patterns": [
-				{
-					"name": "constant.character.escape.trilogy",
-					"match": "\\\\."
-				}
-			]
-		},
-		"single_strings": {
-			"name": "string.quoted.single.trilogy",
-			"begin": "'",
-			"end": "'",
-			"patterns": [
-				{
-					"name": "constant.character.escape.trilogy",
-					"match": "\\\\."
-				}
-			]
-		},
-		"paren-expression": {
-			"begin": "\\(",
-			"end": "\\)",
-			"beginCaptures": {
-				"0": {
-					"name": "punctuation.paren.open"
-				}
-			},
-			"endCaptures": {
-				"0": {
-					"name": "punctuation.paren.close"
-				}
-			},
-			"name": "expression.group",
-			"patterns": [
-				{
-					"include": "#expression"
-				}
-			]
-		},
-		"numbers": {
-			"name": "constant.numeric.trilogy",
-			"patterns": [
-				{
-					"name": "constant.character.escape.trilogy",
-					"match": "\\b[0-9]+(\\.[0-9]+)?\\b"
-				}
-			]
-		},
-		"types": {
-			"patterns": [
-				{
-					"name": "entity.name.type.trilogy",
-					"match": "(?i)\\b(string|int|float)\\b"
-				}
-			]
-		},
 		"comments": {
 			"patterns": [
 				{
@@ -245,6 +146,35 @@
 						}
 					},
 					"name": "comment.line.hash"
+				}
+			]
+		},
+		"select-statement": {
+			"name": "meta.function.trilogy",
+			"begin": "(?x)\n  \\s*\n  (?:\\b(async) \\s+)? \\b(select)\\s+\n    (?=\n    [[:alpha:]_][[:word:]]* \\s* \\(\n    )\n",
+			"end": "(;)",
+			"beginCaptures": {
+				"1": {
+					"name": "storage.type.select.async.trilogy"
+				},
+				"2": {
+					"name": "storage.type.select.trilogy"
+				}
+			},
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.section.function.begin.trilogy"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#function-def-name"
+				},
+				{
+					"include": "#parameters"
+				},
+				{
+					"include": "#line-continuation"
 				}
 			]
 		},
@@ -323,7 +253,7 @@
 				},
 				{
 					"name": "keyword.control.flow.trilogy",
-					"match": "(?x)\n  \\b(?<!\\.)(\n    async | continue | del | assert | break | finally | for\n    | from | elif | else | if | except | pass | raise\n    | return | try | while | with\n  )\\b\n"
+					"match": "(?i)(?x)\n  \\b(?<!\\.)(\n   raw_sql | async | continue | select | del | assert | persist | into | break | finally | for\n    | from | elif | else | if | except | pass | raise\n    | return | try | while | with\n  )\\b\n"
 				},
 				{
 					"name": "storage.modifier.declaration.trilogy",
@@ -365,6 +295,7 @@
 				}
 			]
 		},
+		
 		"parameters": {
 			"name": "meta.function.parameters.trilogy",
 			"begin": "(\\()",
@@ -618,7 +549,7 @@
 		},
 		"magic-function-names": {
 			"comment": "these methods have magic interpretation by trilogy and are generally called\nindirectly through syntactic constructs\n",
-			"match": "(?x)\n  \\b(\n    __(?:\n      abs | add  | where | bool | ceil | cmp | coerce | contains | substr  |  delete |  div | divmod | eq\n| float | floor | floordiv | format | ge\n      |  gt\n      | hash | idiv | ifloordiv |\n     | ilshift | imod | imul | index  | ipow\n      | irshift | isub | iter | itruediv | ixor | le\n      | len | long | lshift | lt | missing | mod | mul\n      | ne | neg | new | next | nonzero | oct | or | pos\n      | pow | radd | rand | rdiv | rdivmod | reduce\n      | reduce_ex | repr | reversed | rfloordiv | rlshift | rmod | rmul | ror | round | rpow\n  | rtruediv | rxor | set\n | str | sub   | truediv | trunc | fspath | bytes | prepare | length_hint\n    )__\n  )\\b\n",
+			"match": "(?x)\n  \\b(\n    __(?:\n   select |  abs | add  | where | bool | ceil | cmp | coerce | contains | substr  |  delete |  div | divmod | eq\n| float | floor | floordiv | format | ge\n      |  gt\n      | hash | idiv | ifloordiv |\n     | ilshift | imod | imul | index  | ipow\n      | irshift | isub | iter | itruediv | ixor | le\n      | len | long | lshift | lt | missing | mod | mul\n      | ne | neg | new | next | nonzero | oct | or | pos\n      | pow | radd | rand | rdiv | rdivmod | reduce\n      | reduce_ex | repr | reversed | rfloordiv | rlshift | rmod | rmul | ror | round | rpow\n  | rtruediv | rxor | set\n | str | sub   | truediv | trunc | fspath | bytes | prepare | length_hint\n    )__\n  )\\b\n",
 			"captures": {
 				"1": {
 					"name": "support.function.magic.trilogy"
