@@ -15,65 +15,64 @@ from lsprotocol.types import (
     SemanticTokens,
     CompletionOptions,
     SemanticTokensLegend,
-    SemanticTokenModifiers,
     SemanticTokensParams,
     DocumentFormattingParams,
     TEXT_DOCUMENT_FORMATTING,
     TEXT_DOCUMENT_CODE_LENS,
-    TEXT_DOCUMENT_CODE_ACTION,
     CodeLensParams,
     CODE_LENS_RESOLVE,
     Command,
-    CodeLensResolveRequest,
-    Range,
-    Position,
-    WorkspaceEdit,
-    TextDocumentEdit,
-    OptionalVersionedTextDocumentIdentifier,
-    TextEdit,
-    CodeLens
-    
+    CodeLens,
 )
 from functools import reduce
-from typing import Dict
-from typing import List
-from typing import Optional
-import enum
-from .error_reporting import get_diagnostics
-from pydantic import BaseModel, Field
-from functools import reduce
+from typing import Dict, List, Optional
+from trilogy_language_server.error_reporting import get_diagnostics
 import operator
 from lark import ParseTree
-from trilogy_language_server.models import Token
-from trilogy_language_server.models import TokenModifier
-from trilogy_language_server.parsing import parse_tree
+from trilogy_language_server.models import TokenModifier, Token
+from trilogy_language_server.parsing import parse_tree, code_lense_tree
 from trilogy.parsing.render import Renderer
-from trilogy.parsing.parse_engine import PARSER, ParseToObjects
+from trilogy.parsing.parse_engine import ParseToObjects, PARSER
 from trilogy.core.models import Environment
+from trilogy.dialect.duckdb import DuckDBDialect
 import re
+
 TokenTypes = ["keyword", "variable", "function", "operator", "parameter", "type"]
 
 ADDITION = re.compile(r"^\s*(\d+)\s*\+\s*(\d+)\s*=(?=\s*$)")
 
+
 class TrilogyLanguageServer(LanguageServer):
     CONFIGURATION_SECTION = "trilogyLanguageServer"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(name="trilogy-lang-server", version="v0.1")
         self.tokens: Dict[str, List[Token]] = {}
+        self.code_lens: Dict[str, List[CodeLens]] = {}
+        self.environment = Environment()
+        self.dialect = DuckDBDialect()
 
-    def _validate(self: "TrilogyLanguageServer", params: DidChangeTextDocumentParams):
+    def _validate(
+        self: "TrilogyLanguageServer",
+        params: t.Union[DidChangeTextDocumentParams, DidOpenTextDocumentParams],
+    ):
         self.show_message_log("Validating document...")
         text_doc = self.workspace.get_document(params.text_document.uri)
         raw_tree, diagnostics = get_diagnostics(text_doc.source)
         self.publish_diagnostics(text_doc.uri, diagnostics)
         if raw_tree:
             self.publish_tokens(text_doc.source, raw_tree, text_doc.uri)
+            self.publish_code_lens(text_doc.source, raw_tree, text_doc.uri)
 
     def publish_tokens(
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
         self.tokens[uri] = parse_tree(original_text, raw_tree)
+
+    def publish_code_lens(
+        self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
+    ):
+        self.code_lens[uri] = code_lense_tree(original_text, raw_tree, self.dialect)
 
 
 trilogy_server = TrilogyLanguageServer()
@@ -87,15 +86,23 @@ def format_document(ls: LanguageServer, params: DocumentFormattingParams):
     doc = ls.workspace.get_text_document(params.text_document.uri)
     r = Renderer()
     env = Environment()
-    return '\n'.join([r.to_string(v) for v in ParseToObjects(visit_tokens=True, text=doc, environment=env)] )
+    return "\n".join(
+        [
+            r.to_string(v)
+            for v in ParseToObjects(
+                visit_tokens=True, text=doc.source, environment=env
+            ).transform(PARSER.parse(doc.source))
+        ]
+    )
 
 
 @trilogy_server.feature(
     TEXT_DOCUMENT_COMPLETION, CompletionOptions(trigger_characters=[","])
 )
-def completions(ls: TrilogyLanguageServer, params: CompletionParams = None):
+def completions(ls: TrilogyLanguageServer, params: Optional[CompletionParams] = None):
     """Returns completion items."""
-    ls.show_message_log("completion called @ {}".format(params.position))
+    if params is not None:
+        ls.show_message_log("completion called @ {}".format(params.position))
     items: t.List[CompletionItem] = []
     return CompletionList(False, items)
 
@@ -124,14 +131,14 @@ async def did_open(ls: TrilogyLanguageServer, params: DidOpenTextDocumentParams)
     TEXT_DOCUMENT_SEMANTIC_TOKENS_FULL,
     SemanticTokensLegend(
         token_types=TokenTypes,
-        token_modifiers=[m.name for m in TokenModifier],
+        token_modifiers=[m.name for m in TokenModifier],  # type: ignore
     ),
 )
 def semantic_tokens_full(ls: TrilogyLanguageServer, params: SemanticTokensParams):
     """Return the semantic tokens for the entire document"""
     data = []
     tokens = ls.tokens.get(params.text_document.uri, [])
-    ls.show_message_log(f"Returning smenatic tokens Tokens: {tokens}")
+    ls.show_message_log(f"Returning semantic tokens Tokens: {tokens}")
     for token in tokens:
         data.extend(
             [
@@ -147,46 +154,22 @@ def semantic_tokens_full(ls: TrilogyLanguageServer, params: SemanticTokensParams
     return SemanticTokens(data=data)
 
 
-
-
 @trilogy_server.feature(TEXT_DOCUMENT_CODE_LENS)
-def code_lens(params: CodeLensParams):
+def code_lens(ls: TrilogyLanguageServer, params: CodeLensParams):
     """Return a list of code lens to insert into the given document.
 
     This method will read the whole document and identify each sum in the document and
     tell the language client to insert a code lens at each location.
     """
-    items = []
     document_uri = params.text_document.uri
-    document = trilogy_server.workspace.get_text_document(document_uri)
+    return ls.code_lens.get(document_uri, [])
 
-    lines = document.lines
-    for idx, line in enumerate(lines):
-        match = ADDITION.match(line)
-        if match is not None:
-            range_ = Range(
-                start=Position(line=idx, character=0),
-                end=Position(line=idx, character=len(line) - 1),
-            )
-            left = int(match.group(1))
-            right = int(match.group(2))
 
-            code_lens = CodeLens(
-                range=range_,
-                data={
-                    
-                },
-                command = Command(
-				title="Evaluate",
-				command="codeLens.evaluateSum",
-				arguments=[{'line': range_.start.line, "left": left,
-                    "right": right,
-                    "uri": document_uri,}],
-			)
-            )
-            items.append(code_lens)
-
-    return items
+# @trilogy_server.thread()
+# @trilogy_server.command(trilogy_server.CODE_LENS_RESOLVE)
+# def count_down_10_seconds_blocking(ls, *args):
+#     # Omitted
+#     pass
 
 
 @trilogy_server.feature(CODE_LENS_RESOLVE)
@@ -197,7 +180,7 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
     above, this prepares an invocation of the ``evaluateSum`` command below.
     """
     ls.show_message_log("Resolving code lens: %s", item)
-
+    assert item.data is not None
     left = item.data["left"]
     right = item.data["right"]
     uri = item.data["uri"]
@@ -217,30 +200,11 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
     return item
 
 
-@trilogy_server.command("codeLens.evaluateSum")
-def evaluate_sum(ls: LanguageServer, args):
-    ls.show_message_log("arguments: %s", args)
+# @trilogy_server.command("codeLens.runQuery")
+# def evaluate_sum(ls: LanguageServer, args):
+#     ls.show_message_log("arguments: %s", args)
 
-    arguments = args[0]
-    document = ls.workspace.get_text_document(arguments["uri"])
-    line = document.lines[arguments["line"]]
 
-    # Compute the edit that will update the document with the result.
-    answer = arguments["left"] + arguments["right"]
-    edit = TextDocumentEdit(
-        text_document=OptionalVersionedTextDocumentIdentifier(
-            uri=arguments["uri"], version=document.version
-        ),
-        edits=[
-            TextEdit(
-                new_text=f"{line.strip()} {answer}\n",
-                range=Range(
-                    start=Position(line=arguments["line"], character=0),
-                    end=Position(line=arguments["line"] + 1, character=0),
-                ),
-            )
-        ],
-    )
-
-    # Apply the edit.
-    ls.apply_edit(WorkspaceEdit(document_changes=[edit])) 	
+#     get_query()
+#     # Apply the edit.
+#     ls.apply_edit(WorkspaceEdit(document_changes=[edit]))
