@@ -60,6 +60,7 @@ jobs:
       - run: npm install
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_arch: ${{ matrix.npm_config_arch }}
       - shell: pwsh
         run: echo "target=${{ matrix.platform }}-${{matrix.arch}}" >> $env:GITHUB_ENV
       - run: npx @vscode/vsce package --target ${{ env.target }}
