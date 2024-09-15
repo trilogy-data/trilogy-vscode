@@ -44,5 +44,5 @@ jobs:
         run: |
           pip install pytest
           pip install pytest-cov
-          pytest tests --ignore=docs_src/ --cov=./tests
+          pytest trilogy_language_server/tests --cov=./trilogy_language_server/tests
 

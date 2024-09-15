@@ -26,6 +26,7 @@ jobs:
           with:
             node-version: 21.x
         - run: npm install
+          working-directory: ./editors/vscode
         - run: npm run test:grammar
           working-directory: ./editors/vscode
         - run: npm lint
