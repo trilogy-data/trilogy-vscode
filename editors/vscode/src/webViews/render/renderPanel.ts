@@ -1,22 +1,22 @@
 import * as vscode from 'vscode';
 import { getWebviewOptions, replaceWebviewHtmlTokens, getNonce } from '../utility';
-import { QueryDocument, } from './queryDocument';
+import { RenderDocument, } from './renderDocument';
 import { IMessage } from './common';
 
 const utf8TextDecoder = new TextDecoder("utf8");
 
-class QueryPanel {
+class RenderPanel {
     /**
      * Track the currently panel. Only allow a single panel to exist at a time.
      */
-    public static currentPanel: QueryPanel | undefined;
+    public static currentPanel: RenderPanel | undefined;
 
-    public static readonly viewType = 'queryPanel';
+    public static readonly viewType = 'renderPanel';
 
     private readonly _panel: vscode.WebviewPanel;
     private readonly _extensionUri: vscode.Uri;
     private _last_msg: IMessage | null;
-    private _queryDocument!: QueryDocument;
+    private _renderDocument!: RenderDocument;
     private _disposables: vscode.Disposable[] = [];
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -39,29 +39,14 @@ class QueryPanel {
             this._disposables
         );
 
-        // Handle messages from the webview
-        this._panel.webview.onDidReceiveMessage(
-            message => {
-                switch (message.command) {
-                    case 'submit':
-                        vscode.window.showInformationMessage(`Input received: ${message.text}`);
-                        this.runQuery(message.text);
-                        return;
-                    case 'alert':
-                        vscode.window.showErrorMessage(message.text);
-                        return;
-                }
-            },
-            null,
-            this._disposables
-        );
     }
 
-    public async runQuery(query: string) {
-        //notify the panel a query is running
-        this._panel.webview.postMessage({ type: 'query-start' });
-        this._queryDocument.runQuery(query, 100, (msg: IMessage) => { this._last_msg = msg; this._panel.webview.postMessage(msg) });
-        // run then send results
+    public async queryRender(sqlQueries: Array<string>, dialect:string) {
+                // this._queryDocument.runQuery(query, 100, (msg: IMessage) => { this._last_msg = msg; this._panel.webview.postMessage(msg) });
+        let msg: IMessage = { type: 'render-queries', renderQueries:sqlQueries, dialect:dialect }
+        this._last_msg = msg;
+        this._panel.webview.postMessage(msg);
+
 
     }
 
@@ -71,52 +56,47 @@ class QueryPanel {
             : undefined;
 
         // If we already have a panel, show it.
-        if (QueryPanel.currentPanel) {
+        if (RenderPanel.currentPanel) {
             console.log('resuing pane')
-            QueryPanel.currentPanel._panel.reveal(column);
-            return QueryPanel.currentPanel;
+            RenderPanel.currentPanel._panel.reveal(column);
+            return RenderPanel.currentPanel;
         }
 
-        // Otherwise, create a new panel.
+        // Otherwise, Qcreate a new panel.
         console.log("creating new panel")
         const panel = vscode.window.createWebviewPanel(
-            QueryPanel.viewType,
-            'Query (Trilogy)',
+            RenderPanel.viewType,
+            'Render (Trilogy)',
             column || vscode.ViewColumn.One,
             getWebviewOptions(extensionUri),
         );
 
-        QueryPanel.currentPanel = await QueryPanel.create(panel, extensionUri);
-        return QueryPanel.currentPanel
+        RenderPanel.currentPanel = await RenderPanel.create(panel, extensionUri);
+        return RenderPanel.currentPanel
     }
 
     public static async revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
-        QueryPanel.currentPanel = await QueryPanel.create(panel, extensionUri);
+        RenderPanel.currentPanel = await RenderPanel.create(panel, extensionUri);
     }
 
-    private static async create(panel: vscode.WebviewPanel, extensionUri: vscode.Uri): Promise<QueryPanel> {
-        const queryPanel = new QueryPanel(panel, extensionUri);
-        await queryPanel.initializeQueryDocument(extensionUri);
-        queryPanel._update();
-        return queryPanel;
+    private static async create(panel: vscode.WebviewPanel, extensionUri: vscode.Uri): Promise<RenderPanel> {
+        const renderPanel = new RenderPanel(panel, extensionUri);
+        await renderPanel.initializeRenderDocument(extensionUri);
+        renderPanel._update();
+        return renderPanel;
     }
 
-    private async initializeQueryDocument(extensionUri: vscode.Uri) {
+    private async initializeRenderDocument(extensionUri: vscode.Uri) {
         try {
-            this._queryDocument = await QueryDocument.create(extensionUri, '');
+            this._renderDocument = await RenderDocument.create(extensionUri, '');
         } catch (err) {
             console.error(err);
         }
     }
 
-    public doRefactor() {
-        // Send a message to the webview webview.
-        // You can send any JSON serializable data.
-        this._panel.webview.postMessage({ command: 'refactor' });
-    }
 
     public dispose() {
-        QueryPanel.currentPanel = undefined;
+        RenderPanel.currentPanel = undefined;
 
         // Clean up our resources
         this._panel.dispose();
@@ -151,10 +131,10 @@ class QueryPanel {
 
         const htmlUri = vscode.Uri.joinPath(
             this.getRootUri(),
-            "dist/webviews/query.html"
+            "dist/webviews/render.html"
         );
         const jsUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this.getWebviewsUri(), "query.js")
+            vscode.Uri.joinPath(this.getWebviewsUri(), "render.js")
         );
         const cssUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this.getRootUri(), "dist/output.css")
@@ -179,4 +159,4 @@ class QueryPanel {
 }
 
 
-export default QueryPanel;
+export default RenderPanel;

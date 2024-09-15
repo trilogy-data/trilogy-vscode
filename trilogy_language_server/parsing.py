@@ -3,7 +3,7 @@ from trilogy.parsing.parse_engine import PARSER
 from lark import ParseTree, Token as LarkToken
 from typing import List, Union
 from lsprotocol.types import CodeLens, Range, Position, Command
-from trilogy.parsing.parse_engine import ParseToObjects
+from trilogy.parsing.parse_engine import ParseToObjects as ParseToObjects
 from trilogy.core.models import (
     SelectStatement,
     MultiSelectStatement,
@@ -65,7 +65,7 @@ def gen_tokens(text, item: Union[ParseTree, LarkToken]) -> List[Token]:
     return tokens
 
 
-def parse_tree(text, input: ParseTree) -> List[Token]:
+def tree_to_symbols(text, input: ParseTree) -> List[Token]:
     tokens = []
     for x in input.children:
         tokens += gen_tokens(text, x)
@@ -76,9 +76,9 @@ def gen_tree(text: str) -> ParseTree:
     return PARSER.parse(text)
 
 
-def parse_text(text: str) -> List[Token]:
+def text_to_symbols(text: str) -> List[Token]:
     parsed: ParseTree = gen_tree(text)
-    return parse_tree(text, parsed)
+    return tree_to_symbols(text, parsed)
 
 
 # def gen_code_lens(text, item: ParseTree) -> List[Token]:
@@ -103,49 +103,80 @@ def parse_text(text: str) -> List[Token]:
 #     return tokens
 
 
-def code_lense_tree(text, input: ParseTree, dialect: BaseDialect) -> List[CodeLens]:
+def parse_statement(
+    idx: int,
+    x: Union[PersistStatement, MultiSelectStatement, SelectStatement, RawSQLStatement],
+    dialect: BaseDialect,
+    environment: Environment,
+) -> Union[List[CodeLens], None]:
+
+    if isinstance(x, (PersistStatement, MultiSelectStatement, SelectStatement)):
+        processed = dialect.generate_queries(environment, [x])
+        sql = dialect.compile_statement(processed[-1])
+        if not x.meta:
+            return None
+        line = x.meta.line_number or 1
+        return [
+            CodeLens(
+                range=Range(
+                    start=Position(line=line - 1, character=1),
+                    end=Position(line=line - 1, character=10),
+                ),
+                data={"idx": idx},
+                command=Command(
+                    title="Run Query",
+                    command="trilogy.runQuery",
+                    arguments=[sql],
+                ),
+            ),
+            CodeLens(
+                range=Range(
+                    start=Position(line=line - 1, character=2),
+                    end=Position(line=line - 1, character=10),
+                ),
+                data={"idx": idx},
+                command=Command(
+                    title="Render SQL",
+                    command="trilogy.renderQuery",
+                    arguments=[[sql], str(dialect.__class__)],
+                ),
+            ),
+        ]
+    elif isinstance(x, RawSQLStatement):
+        if not x.meta:
+            return None
+        line = x.meta.line_number or 1
+        return [
+            CodeLens(
+                range=Range(
+                    start=Position(line=line - 1, character=1),
+                    end=Position(line=line - 1, character=10),
+                ),
+                data={"idx": idx},
+                command=Command(
+                    title="Run Query",
+                    command="trilogy.runQuery",
+                    arguments=[x.text],
+                ),
+            )
+        ]
+    return None
+
+
+def code_lense_tree(
+    environment: Environment, text, input: ParseTree, dialect: BaseDialect
+) -> List[CodeLens]:
     tokens = []
-    environment = Environment()
     parsed = ParseToObjects(
-        visit_tokens=True, text=text, environment=environment
+        visit_tokens=True,
+        text=text,
+        environment=environment,
     ).transform(input)
-    for idx, x in enumerate(parsed):
-        if isinstance(x, (PersistStatement, MultiSelectStatement, SelectStatement)):
-            processed = dialect.generate_queries(environment, [x])
-            sql = dialect.compile_statement(processed[-1])
-            if not x.meta:
-                continue
-            line = x.meta.line_number or 1
-            tokens.append(
-                CodeLens(
-                    range=Range(
-                        start=Position(line=line - 1, character=1),
-                        end=Position(line=line - 1, character=10),
-                    ),
-                    data={"idx": idx},
-                    command=Command(
-                        title="Run Query",
-                        command="trilogy.runQuery",
-                        arguments=[sql],
-                    ),
-                )
-            )
-        elif isinstance(x, RawSQLStatement):
-            if not x.meta:
-                continue
-            line = x.meta.line_number or 1
-            tokens.append(
-                CodeLens(
-                    range=Range(
-                        start=Position(line=line - 1, character=1),
-                        end=Position(line=line - 1, character=10),
-                    ),
-                    data={"idx": idx},
-                    command=Command(
-                        title="Run Query",
-                        command="trilogy.runQuery",
-                        arguments=[x.text],
-                    ),
-                )
-            )
+    for idx, stmt in enumerate(parsed):
+        try:
+            x = parse_statement(idx, stmt, dialect, environment=environment)
+            if x:
+                tokens += x
+        except Exception:
+            pass
     return tokens

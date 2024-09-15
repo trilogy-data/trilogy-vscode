@@ -40,6 +40,10 @@ const entryConfigs = [
 	{
 		entryPoints: ['src/webViews/query/queryPanelContent.tsx'],
 		outfile: 'dist/webviews/query.js',
+	  },
+	  {
+		entryPoints: ['src/webViews/render/renderPanelContent.tsx'],
+		outfile: 'dist/webviews/render.js',
 	  }
   ];
   

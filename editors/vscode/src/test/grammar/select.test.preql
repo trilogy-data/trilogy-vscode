@@ -1,0 +1,8 @@
+# SYNTAX TEST "source.trilogy" "select testcase"
+
+# line can start with a <comment token> and not have a valid assertion
+
+SELECT 
+# <-----  keyword.control.select.trilogy
+
+

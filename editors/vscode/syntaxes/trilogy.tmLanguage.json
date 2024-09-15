@@ -26,6 +26,9 @@
 				},
 				{
 					"include": "#assignment-operator"
+				},
+								{
+					"include": "#assignment-operator"
 				}
 			]
 		},
@@ -81,7 +84,7 @@
 			"end": "(:|(?=[#'\"\\n]))",
 			"beginCaptures": {
 				"1": {
-					"name": "storage.type.function.trilogy"
+					"name": "storage.type.trilogy"
 				}
 			},
 			"endCaptures": {
@@ -207,20 +210,6 @@
 				}
 			]
 		},
-		"assign-annotation": {
-			"begin": "(->)",
-			"end": "(?=:)",
-			"beginCaptures": {
-				"1": {
-					"name": "punctuation.separator.annotation.result.trilogy"
-				}
-			},
-			"patterns": [
-				{
-					"include": "#expression"
-				}
-			]
-		},
 		"bind-annotation": {
 			"begin": "(->)",
 			"end": "(?=:)",
@@ -250,6 +239,10 @@
 					"name": "keyword.control.import.trilogy",
 					"comment": "other legal use of `as` is in an import",
 					"match": "\\b(?<!\\.)as\\b"
+				},
+								{
+					"name": "keyword.control.select.trilogy",
+					"match": "(?i)(?x)\n  \\b(?<!\\.)(\n    select  )\\b\n"
 				},
 				{
 					"name": "keyword.control.flow.trilogy",

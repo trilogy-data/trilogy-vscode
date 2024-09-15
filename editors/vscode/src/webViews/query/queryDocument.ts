@@ -70,16 +70,11 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
         return results;
     }
 
-    private createHeaders(Results: TableData): string[] {
-        return Object.keys(Results[0]);
-    }
 
     runQuery(sql: string, limit: number, callback: (msg: IMessage) => void): void {
         // check if it is a CALL statement
         const checkSQL = sql.toLowerCase().trim();
-        console.log(checkSQL)
         if (checkSQL.startsWith('call') || checkSQL.startsWith('install')  || checkSQL.startsWith('load')) {
-            console.log('running non_select')
             callback({ type: 'query-parse', success: true, message: 'finished-parse' });
             this.db.all(
                 sql,

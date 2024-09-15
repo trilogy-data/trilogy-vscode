@@ -1,11 +1,9 @@
 from trilogy_language_server.models import Token, TokenModifier
-from trilogy.parsing.parse_engine import PARSER
-from trilogy_language_server.parsing import parse_tree, gen_tree, code_lense_tree
-from trilogy import Dialects
-from lsprotocol.types import CodeLens, Range, Position, Command, SemanticTokenModifiers
-from lark import ParseTree, Token as LarkToken
-from typing import List
+from trilogy_language_server.parsing import tree_to_symbols, gen_tree, code_lense_tree
+from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.dialect.duckdb import DuckDBDialect
+from trilogy.core.models import Environment
+
 
 def test_parse_tree():
     basic = """key omicron int;
@@ -14,7 +12,7 @@ def test_parse_tree():
 	
 	"""
     tree = gen_tree(basic)
-    parsed = parse_tree(basic, tree)
+    parsed = tree_to_symbols(basic, tree)
 
     expected = Token(
         line=1,
@@ -36,23 +34,36 @@ def test_code_lense_tree():
 	"""
     tree = gen_tree(basic)
     dialect = DuckDBDialect()
-    lenses = code_lense_tree(basic, tree, dialect)
-    comp = lenses[0]
+    comp = code_lense_tree(
+        environment=Environment(), text=basic, input=tree, dialect=dialect
+    )
     expected_query = """
-
 SELECT
     1 as "omicron",
     1 as "test"
-
-
 """
-    assert comp.command.arguments[0] == expected_query
-    assert comp == CodeLens(
-        range=Range(start=Position(line=3, character=1), end=Position(line=3, character=10)),
+    assert comp[0].command.arguments[0] == expected_query
+    assert comp[0] == CodeLens(
+        range=Range(
+            start=Position(line=2, character=1), end=Position(line=2, character=10)
+        ),
         command=Command(
             title="Run Query",
-            command="codeLens.runQuery",
+            command="trilogy.runQuery",
             arguments=[expected_query],
         ),
-        data = {'idx': 1},
-    )
+        data={"idx": 1},
+    ), comp[0]
+    assert comp[1].command.arguments[0] == [expected_query]
+    assert comp[1].command.command == "trilogy.renderQuery"
+    assert comp[1] == CodeLens(
+        range=Range(
+            start=Position(line=2, character=2), end=Position(line=2, character=10)
+        ),
+        command=Command(
+            title="Render SQL",
+            command="trilogy.renderQuery",
+            arguments=[[expected_query], str(dialect.__class__)],
+        ),
+        data={"idx": 1},
+    ), str(comp[1].command)

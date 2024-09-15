@@ -1,5 +1,6 @@
 import typing as t
 from pygls.server import LanguageServer
+from pygls.uris import to_fs_path
 from lsprotocol.types import (
     TEXT_DOCUMENT_COMPLETION,
     CompletionItem,
@@ -23,6 +24,9 @@ from lsprotocol.types import (
     CODE_LENS_RESOLVE,
     Command,
     CodeLens,
+    ShowMessageParams,
+    LogMessageParams,
+    MessageType,
 )
 from functools import reduce
 from typing import Dict, List, Optional
@@ -30,7 +34,7 @@ from trilogy_language_server.error_reporting import get_diagnostics
 import operator
 from lark import ParseTree
 from trilogy_language_server.models import TokenModifier, Token
-from trilogy_language_server.parsing import parse_tree, code_lense_tree
+from trilogy_language_server.parsing import tree_to_symbols, code_lense_tree
 from trilogy.parsing.render import Renderer
 from trilogy.parsing.parse_engine import ParseToObjects, PARSER
 from trilogy.core.models import Environment
@@ -43,13 +47,18 @@ ADDITION = re.compile(r"^\s*(\d+)\s*\+\s*(\d+)\s*=(?=\s*$)")
 
 
 class TrilogyLanguageServer(LanguageServer):
-    CONFIGURATION_SECTION = "trilogyLanguageServer"
+    CMD_SHOW_CONFIGURATION_ASYNC = "showConfigurationAsync"
+    CMD_SHOW_CONFIGURATION_CALLBACK = "showConfigurationCallback"
+    CMD_SHOW_CONFIGURATION_THREAD = "showConfigurationThread"
+    CMD_UNREGISTER_COMPLETIONS = "unregisterCompletions"
+
+    CONFIGURATION_SECTION = "trilogy"
 
     def __init__(self) -> None:
         super().__init__(name="trilogy-lang-server", version="v0.1")
         self.tokens: Dict[str, List[Token]] = {}
         self.code_lens: Dict[str, List[CodeLens]] = {}
-        self.environment = Environment()
+        self.environments: Dict[str, Environment] = {}
         self.dialect = DuckDBDialect()
 
     def _validate(
@@ -67,12 +76,26 @@ class TrilogyLanguageServer(LanguageServer):
     def publish_tokens(
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
-        self.tokens[uri] = parse_tree(original_text, raw_tree)
+        self.tokens[uri] = tree_to_symbols(original_text, raw_tree)
 
     def publish_code_lens(
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
-        self.code_lens[uri] = code_lense_tree(original_text, raw_tree, self.dialect)
+        environment = self.environments.get(uri, None)
+        if not environment:
+            environment = Environment(working_path=to_fs_path(self.workspace.root_uri))
+            self.environments[uri] = environment
+        lenses = code_lense_tree(
+            environment=environment,
+            text=original_text,
+            input=raw_tree,
+            dialect=self.dialect,
+        )
+        self.code_lens[uri] = lenses
+        if lenses:
+            self.show_message(
+                f"Found {len(lenses)} queries for path {to_fs_path(self.workspace.root_uri)}"
+            )
 
 
 trilogy_server = TrilogyLanguageServer()
@@ -117,13 +140,11 @@ def did_change(ls: TrilogyLanguageServer, params: DidChangeTextDocumentParams):
 @trilogy_server.feature(TEXT_DOCUMENT_DID_CLOSE)
 def did_close(ls: TrilogyLanguageServer, params: DidCloseTextDocumentParams):
     """Text document did close notification."""
-    ls.show_message("Text Document Did Close")
 
 
 @trilogy_server.feature(TEXT_DOCUMENT_DID_OPEN)
 async def did_open(ls: TrilogyLanguageServer, params: DidOpenTextDocumentParams):
     """Text document did open notification."""
-    ls.show_message("Text Document Did Open")
     ls._validate(params)
 
 
@@ -200,11 +221,22 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
     return item
 
 
-# @trilogy_server.command("codeLens.runQuery")
-# def evaluate_sum(ls: LanguageServer, args):
-#     ls.show_message_log("arguments: %s", args)
+def handle_config(ls: TrilogyLanguageServer, config):
+    """Handle the configuration sent by the client."""
+    try:
+        example_config = config[0].get("exampleConfiguration")
 
+        ls.show_message_log(
+            ShowMessageParams(
+                message=f"trilogy.exampleConfiguration value: {example_config}",
+                type=MessageType.Info,
+            ),
+        )
 
-#     get_query()
-#     # Apply the edit.
-#     ls.apply_edit(WorkspaceEdit(document_changes=[edit]))
+    except Exception as e:
+        ls.show_message_log(
+            LogMessageParams(
+                message=f"Error ocurred: {e}",
+                type=MessageType.Error,
+            ),
+        )

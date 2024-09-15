@@ -61,23 +61,7 @@ class QueryResults extends Component<{ headers: ColumnDescription[]; data: any[]
 	}
 }
 
-// @ts-ignore
-function SubmitButton({ vscode }) {
-	function handleSubmit(e: FormEvent<HTMLButtonElement>) {
-		e.preventDefault();
-		const input = (document.getElementById('inputText') as HTMLInputElement).value;
-		vscode.postMessage({
-			command: 'submit',
-			text: input,
-		});
-	}
 
-	return (
-		<button type="submit" onClick={handleSubmit}>
-			Submit
-		</button>
-	);
-}
 
 
 class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
@@ -133,14 +117,6 @@ class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
 		return (
 			<div className="w-full min-h-screen  flex flex-col items-center">
 				<div className="w-full max-w-4xl p-6  shadow-md rounded-lg">
-					{/* <input nonce="${nonce}" type="text" id="inputText"
-						className="w-full p-2 border bg-gray border-gray-300 rounded-md mb-4"
-					/>
-					<form className="flex flex-col items-start mb-4">
-						<SubmitButton vscode={vscode}
-
-						/>
-					</form> */}
 					<h2 className="text-l font-semibold mb-2 text-white-700">Response ({data.length} rows)</h2>
 					<QueryResults data={currentData} headers={headers} />
 					<div className="flex justify-between items-center mt-6">

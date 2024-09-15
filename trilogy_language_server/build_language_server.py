@@ -19,7 +19,7 @@ if system() == "Linux":
     final_file = SCRIPT_NAME
 elif system() == "Windows":
     parent = "scripts"
-    final_file = f"{SCRIPT_NAME}.exe"
+    final_file = f"{SCRIPT_NAME}"
 else:
     parent = "bin"
     final_file = SCRIPT_NAME

@@ -9,14 +9,14 @@ import {
 	ServerOptions,
 } from 'vscode-languageclient';
 import QueryPanel from './webViews/query/queryPanel';
+import RenderPanel from './webViews/render/renderPanel';
 import * as vscode from 'vscode';
-import {getWebviewOptions} from './webViews/utility';
 import { ConfigViewProvider } from "./webViews/config/config-view-provider";
 let client: LanguageClient;
 
 function getClientOptions(): LanguageClientOptions {
 	return {
-		// Register the server for plain text documents
+		// Register the server for trilogy documents
 		documentSelector: [
 			{ scheme: 'file', language: 'trilogy' },
 			{ scheme: 'untitled', language: 'trilogy' },
@@ -67,6 +67,12 @@ function registerUI(context: ExtensionContext) {
 				panel.runQuery(command);
 			});
       
+		}),
+		vscode.commands.registerCommand('trilogy.renderQuery', (command, dialect) => {
+			RenderPanel.createOrShow(context.extensionUri).then((panel) => {
+				panel.queryRender(command, dialect);
+			});
+      
 		})
 	);
 
@@ -100,7 +106,7 @@ export function activate(context: ExtensionContext) {
 	} else {
 		// Production - Distribute the LS as a separate package or within the extension?
 		const cwd = path.join(__dirname);
-		const serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server.exe');
+		const serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server');
 		client = startLangServer(serverPath, [], cwd);
 	}	
 
