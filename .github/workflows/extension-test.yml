@@ -25,11 +25,10 @@ jobs:
         - uses: actions/setup-node@v4
           with:
             node-version: 21.x
+            cache: 'npm'
+            cache-dependency-path: editors/vscode/package-lock.json
         - run: npm install --include=dev
           working-directory: ./editors/vscode
         - run: npm run test:grammar
           working-directory: ./editors/vscode
-        - run: npm run lint
-          working-directory: ./editors/vscode
-
 

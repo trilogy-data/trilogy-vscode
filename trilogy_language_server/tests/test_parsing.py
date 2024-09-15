@@ -1,6 +1,7 @@
 import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from pathlib import Path
+# TODO: less shenanigans
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from trilogy_language_server.models import Token, TokenModifier
 from trilogy_language_server.parsing import tree_to_symbols, gen_tree, code_lense_tree
