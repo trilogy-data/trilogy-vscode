@@ -41,6 +41,7 @@ jobs:
           # stop the build if there are Python syntax errors or undefined names
           ruff check .
       - name: Test with pytest
+        working-directory: ./trilogy_language_server
         run: |
           pip install pytest
           pip install pytest-cov
