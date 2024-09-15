@@ -60,8 +60,7 @@ class QueryPanel {
     public async runQuery(query: string) {
         //notify the panel a query is running
         this._panel.webview.postMessage({ type: 'query-start' });
-        this._queryDocument.runQuery(query, 100, (msg: IMessage) => { this._last_msg = msg; this._panel.webview.postMessage(msg) });
-        // run then send results
+        this._queryDocument.runQuery(query, 100, (msg: IMessage) => { this._last_msg = msg; this._panel.webview.postMessage(msg); });
 
     }
 
@@ -72,13 +71,13 @@ class QueryPanel {
 
         // If we already have a panel, show it.
         if (QueryPanel.currentPanel) {
-            console.log('resuing pane')
+            console.log('resuing pane');
             QueryPanel.currentPanel._panel.reveal(column);
             return QueryPanel.currentPanel;
         }
 
         // Otherwise, create a new panel.
-        console.log("creating new panel")
+        console.log("creating new panel");
         const panel = vscode.window.createWebviewPanel(
             QueryPanel.viewType,
             'Query (Trilogy)',
@@ -87,7 +86,7 @@ class QueryPanel {
         );
 
         QueryPanel.currentPanel = await QueryPanel.create(panel, extensionUri);
-        return QueryPanel.currentPanel
+        return QueryPanel.currentPanel;
     }
 
     public static async revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {

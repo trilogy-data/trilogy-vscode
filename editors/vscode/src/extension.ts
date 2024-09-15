@@ -26,7 +26,7 @@ function getClientOptions(): LanguageClientOptions {
 }
 
 function isStartedInDebugMode(): boolean {
-	return false
+	return false;
 	// return process.env.VSCODE_DEBUG_MODE === 'true';
 }
 
@@ -114,7 +114,7 @@ export function activate(context: ExtensionContext) {
   vscode.window.registerWebviewViewProvider(
     ConfigViewProvider.viewType,
     configViewProvider
-  )
+  );
   context.subscriptions.push(client.start());
 }
 

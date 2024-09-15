@@ -30,7 +30,7 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
         //     this._db = db 
         // });
 
-        const config = vscode.workspace.getConfiguration('trilogy')
+        const config = vscode.workspace.getConfiguration('trilogy');
     }
     private async init() {
         this._db = await Database.create(":memory:");

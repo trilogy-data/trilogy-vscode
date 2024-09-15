@@ -43,7 +43,7 @@ class RenderPanel {
 
     public async queryRender(sqlQueries: Array<string>, dialect:string) {
                 // this._queryDocument.runQuery(query, 100, (msg: IMessage) => { this._last_msg = msg; this._panel.webview.postMessage(msg) });
-        let msg: IMessage = { type: 'render-queries', renderQueries:sqlQueries, dialect:dialect }
+        const msg: IMessage = { type: 'render-queries', renderQueries:sqlQueries, dialect:dialect };
         this._last_msg = msg;
         this._panel.webview.postMessage(msg);
 
@@ -57,13 +57,11 @@ class RenderPanel {
 
         // If we already have a panel, show it.
         if (RenderPanel.currentPanel) {
-            console.log('resuing pane')
             RenderPanel.currentPanel._panel.reveal(column);
             return RenderPanel.currentPanel;
         }
 
         // Otherwise, Qcreate a new panel.
-        console.log("creating new panel")
         const panel = vscode.window.createWebviewPanel(
             RenderPanel.viewType,
             'Render (Trilogy)',
@@ -72,7 +70,7 @@ class RenderPanel {
         );
 
         RenderPanel.currentPanel = await RenderPanel.create(panel, extensionUri);
-        return RenderPanel.currentPanel
+        return RenderPanel.currentPanel;
     }
 
     public static async revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {

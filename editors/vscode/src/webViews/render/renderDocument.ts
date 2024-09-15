@@ -23,7 +23,7 @@ export class RenderDocument extends Disposable implements vscode.CustomDocument 
     private constructor(uri: vscode.Uri) {
         super();
         this._uri = uri;
-        const config = vscode.workspace.getConfiguration('trilogy')
+        const config = vscode.workspace.getConfiguration('trilogy');
     }
     public get uri() { return this._uri; }
 

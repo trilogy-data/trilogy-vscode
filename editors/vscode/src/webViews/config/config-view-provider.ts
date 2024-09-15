@@ -29,8 +29,6 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
     );
 
     webviewView.webview.onDidReceiveMessage((data) => {
-      switch (data.type) {
-      }
     });
   }
 
