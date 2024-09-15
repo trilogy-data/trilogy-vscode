@@ -12,6 +12,10 @@
 	"categories": [
 		"Programming Languages"
 	],
+	"activationEvents": [
+		"onLanguage:trilogy",
+		"onCommand:trilogy.runQuery"
+	],
 	"contributes": {
 		"viewsContainers": {
 			"activitybar": [
@@ -115,8 +119,7 @@
 		"icons:svgo": "svgo -q -f ./images/icons/ --config svgo.config.js",
 		"build:icons": "npm run icons:svgo && fantasticon",
 		"build:css": "tailwindcss -i ./src/media/input.css -o ./dist/output.css --watch",
-		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\"",
-		"glob": "node test_glob.js"
+		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\""
 	},
 	"dependencies": {
 		"@types/react": "^18.3.3",
