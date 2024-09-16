@@ -11,10 +11,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11"]
+        include:
+          - os: windows-latest
+            python-version: "3.11"
+          - os: ubuntu-latest
+            python-version: "3.11"
+    runs-on: ${{ matrix.os }}
     env: 
       in-ci: "true"
     steps:
@@ -31,5 +35,9 @@ jobs:
           working-directory: ./editors/vscode
         - run: npm run test:grammar
           working-directory: ./editors/vscode
-        - run: npm run test
+        - run: xvfb-run -a npm test
+          if: runner.os == 'Linux'
+          working-directory: ./editors/vscode
+        - run: npm test
+          if: runner.os != 'Linux'
           working-directory: ./editors/vscode
