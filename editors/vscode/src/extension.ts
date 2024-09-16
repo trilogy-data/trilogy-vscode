@@ -12,6 +12,9 @@ import QueryPanel from './webViews/query/queryPanel';
 import RenderPanel from './webViews/render/renderPanel';
 import * as vscode from 'vscode';
 import { ConfigViewProvider } from "./webViews/config/config-view-provider";
+import * as os from 'os';
+const isWindows = os.platform() === 'win32';
+
 let client: LanguageClient;
 
 function getClientOptions(): LanguageClientOptions {
@@ -61,22 +64,22 @@ function startLangServer(command: string, args: string[], cwd: string): Language
 }
 
 function registerUI(context: ExtensionContext) {
-  context.subscriptions.push(
+	context.subscriptions.push(
 		vscode.commands.registerCommand('trilogy.runQuery', (command) => {
 			QueryPanel.createOrShow(context.extensionUri).then((panel) => {
 				panel.runQuery(command);
 			});
-      
+
 		}),
 		vscode.commands.registerCommand('trilogy.renderQuery', (command, dialect) => {
 			RenderPanel.createOrShow(context.extensionUri).then((panel) => {
 				panel.queryRender(command, dialect);
 			});
-      
+
 		})
 	);
 
-    // Keep this for how to interact with webView
+	// Keep this for how to interact with webView
 	// context.subscriptions.push(
 	// 	vscode.commands.registerCommand('trilogy.refresh', () => {
 	// 		if (QueryPanel.currentPanel) {
@@ -99,23 +102,30 @@ function registerUI(context: ExtensionContext) {
 }
 
 export function activate(context: ExtensionContext) {
-  registerUI(context);
+	registerUI(context);
 	if (isStartedInDebugMode()) {
 		// Development - Run the server manually
 		client = startLangServerTCP(2087);
 	} else {
 		// Production - Distribute the LS as a separate package or within the extension?
 		const cwd = path.join(__dirname);
-		const serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server');
-		client = startLangServer(serverPath, [], cwd);
-	}	
+		if (isWindows) {
+			const serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server.exe');
+			client = startLangServer(serverPath, [], cwd);
+		}
+		else {
+			const serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server');
+			client = startLangServer(serverPath, [], cwd);
+		}
 
-  const configViewProvider = new ConfigViewProvider(context.extensionUri);
-  vscode.window.registerWebviewViewProvider(
-    ConfigViewProvider.viewType,
-    configViewProvider
-  );
-  context.subscriptions.push(client.start());
+	}
+
+	const configViewProvider = new ConfigViewProvider(context.extensionUri);
+	vscode.window.registerWebviewViewProvider(
+		ConfigViewProvider.viewType,
+		configViewProvider
+	);
+	context.subscriptions.push(client.start());
 }
 
 export function deactivate(): Thenable<void> {

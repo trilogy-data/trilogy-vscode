@@ -14,7 +14,8 @@
 	],
 	"activationEvents": [
 		"onLanguage:trilogy",
-		"onCommand:trilogy.runQuery"
+		"onCommand:trilogy.runQuery",
+		"onCommand:trilogy.renderQuery"
 	],
 	"contributes": {
 		"viewsContainers": {
@@ -99,7 +100,7 @@
 					"type": "webview",
 					"id": "trilogy.configView",
 					"name": "Configure",
-					"contextualTitle": "Trilgy Config",
+					"contextualTitle": "Trilogy Config",
 					"icon": "$(trilogy-trilogy)",
 					"initialSize": 6,
 					"visibility": "visible"
@@ -119,7 +120,8 @@
 		"icons:svgo": "svgo -q -f ./images/icons/ --config svgo.config.js",
 		"build:icons": "npm run icons:svgo && fantasticon",
 		"build:css": "tailwindcss -i ./src/media/input.css -o ./dist/output.css --watch",
-		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\""
+		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\"",
+		"test": "npm run compile && node ./out/test/runTest.js"
 	},
 	"dependencies": {
 		"@types/react": "^18.3.3",
@@ -134,13 +136,14 @@
 	},
 	"devDependencies": {
 		"@twbs/fantasticon": "^3.0.0",
+		"@types/glob": "^8.1.0",
 		"@types/mocha": "^10.0.6",
 		"@types/node": "^18",
 		"@types/vscode": "^1.73.0",
 		"@types/vscode-webview": "^1.57.0",
 		"@typescript-eslint/eslint-plugin": "^7.18.0",
 		"@typescript-eslint/parser": "^7.14.0",
-		"@vscode/test-electron": "^2.3.9",
+		"@vscode/test-electron": "^2.4.1",
 		"@vscode/vsce": "^2.31.1",
 		"esbuild": "0.23.0",
 		"eslint": "^8.57.0",

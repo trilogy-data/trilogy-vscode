@@ -31,4 +31,5 @@ jobs:
           working-directory: ./editors/vscode
         - run: npm run test:grammar
           working-directory: ./editors/vscode
-
+        - run: npm run test
+          working-directory: ./editors/vscode
