@@ -1,7 +1,7 @@
 
 import ReactDOM from "react-dom/client";
-import React, { Component, createRef, FormEvent } from 'react'
-import { ColumnDescription } from './common'
+import React, { Component, createRef, FormEvent } from 'react';
+import { ColumnDescription } from './common';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import sql from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
 import { tomorrowNight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
@@ -57,7 +57,7 @@ class QueryResults extends Component<{ headers: ColumnDescription[]; data: any[]
 					</table>
 
 				</main>
-			</>)
+			</>);
 	}
 }
 
@@ -99,7 +99,7 @@ class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
 						<h2 className="text-l font-semibold mb-2 text-white-700">Loading...</h2>
 					</div>
 				</div>
-			)
+			);
 		}
  		if (exception) {
 			return (
@@ -109,7 +109,7 @@ class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
 						<p>{exception}</p>
 					</div>
 				</div>
-			)
+			);
 		}
 		const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 		const endIndex = startIndex + ITEMS_PER_PAGE;
@@ -146,7 +146,7 @@ class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
 					</SyntaxHighlighter>
 				</div>
 			</div>
-		)
+		);
 	}
 }
 

@@ -52,10 +52,6 @@ const entryConfigs = [
       return esbuild.context({
         entryPoints: config.entryPoints,
         bundle: true,
-        alias: {"mock-aws-s3": resolve(__dirname, 'src/empty.ts'),
-            "aws-sdk": resolve(__dirname, 'src/empty.ts'),
-            "nock": resolve(__dirname, 'src/empty.ts'),
-        },
         loader: { '.html': 'empty' },
         format: 'cjs',
         minify: production,
@@ -63,7 +59,7 @@ const entryConfigs = [
         sourcesContent: false,
         platform: 'node',
         outfile: config.outfile,
-        external: ['vscode'],
+        external: ['vscode', 'aws-sdk', 'mock-aws-s3', 'nock'],
         logLevel: 'silent',
         define: {
           'process.env.NODE_ENV': '"production"',

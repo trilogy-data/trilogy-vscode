@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { Disposable } from '../dispose';
 
-import { Database, TableData } from "duckdb";
+import { Database, TableData } from "duckdb-async";
 import { ColumnDescription, IMessage } from './common';
 
 
@@ -33,7 +33,7 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
         const config = vscode.workspace.getConfiguration('trilogy');
     }
     private async init() {
-        this._db = new Database(':memory:');
+        this._db = await Database.create(":memory:");
     }
     public get uri() { return this._uri; }
     public get db() { return this._db; }
