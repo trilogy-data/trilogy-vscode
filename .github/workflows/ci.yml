@@ -2,7 +2,7 @@ name: CI
 on:
   push:
     branches:
-      - "do-not-run"
+      - "mvp"
     tags:
       - "v*"
 jobs:

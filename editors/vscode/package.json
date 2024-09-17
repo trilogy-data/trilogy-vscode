@@ -4,7 +4,7 @@
 	"author": "N/A",
 	"repository": "https://github.com/trilogydata/trilogy-language-server",
 	"license": "MIT",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"publisher": "trilogydata",
 	"engines": {
 		"vscode": "^1.73.0"
@@ -111,7 +111,7 @@
 	},
 	"main": "./dist/extension.js",
 	"scripts": {
-		"vscode:prepublish": "node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css",
+		"vscode:prepublish": "node include-duckdb.js && node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint \"src/**/*.ts\" --fix",
