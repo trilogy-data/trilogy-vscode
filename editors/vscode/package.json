@@ -121,7 +121,7 @@
 		"build:icons": "npm run icons:svgo && fantasticon",
 		"build:css": "tailwindcss -i ./src/media/input.css -o ./dist/output.css --watch",
 		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\"",
-		"test": "mkdir ./dist/binding/; cp ./node_modules/duckdb/lib/binding/duckdb.node ./dist/binding/; node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css && node ./out/test/runTest.js"
+		"test": "node include-duckdb.js && node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css && node ./out/test/runTest.js"
 	},
 	"dependencies": {
 		"@types/react": "^18.3.3",
