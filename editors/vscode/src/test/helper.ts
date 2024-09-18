@@ -16,11 +16,11 @@ export let platformEol: string;
 export async function activate(docUri: vscode.Uri) {
 	// The extensionId is `publisher.name` from package.json
 	const ext = vscode.extensions.getExtension('trilogydata.vscode-trilogy-tools')!;
-	const client = await ext.activate();
+	const client = ext.activate();
 	try {
 		doc = await vscode.workspace.openTextDocument(docUri);
 		editor = await vscode.window.showTextDocument(doc);
-		await client.onReady();
+		await client;
 		await sleep(2000); // Wait 2 seconds for server activation
 	} catch (e) {
 		console.error(e);

@@ -101,7 +101,7 @@ function registerUI(context: ExtensionContext) {
 
 }
 
-export function activate(context: ExtensionContext): LanguageClient {
+export function activate(context: ExtensionContext): Promise<void> {
 	registerUI(context);
 	if (isStartedInDebugMode()) {
 		// Development - Run the server manually
@@ -140,7 +140,8 @@ export function activate(context: ExtensionContext): LanguageClient {
 		configViewProvider
 	);
 	context.subscriptions.push(client.start());
-	return client;
+	process.stdout.write('Returning client from extension activation');
+	return client.onReady();
 }
 
 export function deactivate(): Thenable<void> {
