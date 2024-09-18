@@ -111,7 +111,7 @@
 	},
 	"main": "./dist/extension.js",
 	"scripts": {
-		"vscode:prepublish": "node include-duckdb.js && node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css",
+		"vscode:prepublish": "node include_dependencies.js && node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint \"src/**/*.ts\" --fix",
@@ -121,8 +121,8 @@
 		"build:icons": "npm run icons:svgo && fantasticon",
 		"build:css": "tailwindcss -i ./src/media/input.css -o ./dist/output.css --watch",
 		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\"",
-		"test:duckdb": "node include-duckdb.js",
-		"test": "node include-duckdb.js && node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css && node ./out/test/runTest.js"
+		"test:no-compile": "node ./out/test/runTest.js",
+		"test": "node include_dependencies.js && node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css && node ./out/test/runTest.js"
 	},
 	"dependencies": {
 		"@types/react": "^18.3.3",

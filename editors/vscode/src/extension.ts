@@ -101,22 +101,36 @@ function registerUI(context: ExtensionContext) {
 
 }
 
-export function activate(context: ExtensionContext) {
+export function activate(context: ExtensionContext): LanguageClient {
 	registerUI(context);
 	if (isStartedInDebugMode()) {
 		// Development - Run the server manually
 		client = startLangServerTCP(2087);
 	} else {
-		// Production - Distribute the LS as a separate package or within the extension?
+		// Production - Start the language server based on the OS
 		const cwd = path.join(__dirname);
+		let serverPath: string;
+
 		if (isWindows) {
-			const serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server.exe');
-			client = startLangServer(serverPath, [], cwd);
+			serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server.exe');
+		} else {
+			serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server');
 		}
-		else {
-			const serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server');
-			client = startLangServer(serverPath, [], cwd);
+
+		client = startLangServer(serverPath, [], cwd);
+	// Check if the language server is ready
+	client.onReady().then(() => {
+		vscode.window.showInformationMessage('Language Server started successfully.');
+	}).catch((error) => {
+		vscode.window.showErrorMessage('Failed to start Language Server: ' + error.message);
+	});
+
+	// Optional: Register for additional events like server state change
+	client.onDidChangeState((event) => {
+		if (event.newState === 2) { // 2 = Running
+			vscode.window.showInformationMessage('Language Server is running.');
 		}
+	});
 
 	}
 
@@ -126,6 +140,7 @@ export function activate(context: ExtensionContext) {
 		configViewProvider
 	);
 	context.subscriptions.push(client.start());
+	return client;
 }
 
 export function deactivate(): Thenable<void> {
