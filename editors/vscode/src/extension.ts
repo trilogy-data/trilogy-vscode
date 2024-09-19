@@ -101,7 +101,7 @@ function registerUI(context: ExtensionContext) {
 
 }
 
-export function activate(context: ExtensionContext): Promise<void> {
+export async function activate(context: ExtensionContext): Promise<LanguageClient> {
 	registerUI(context);
 	if (isStartedInDebugMode()) {
 		// Development - Run the server manually
@@ -119,17 +119,21 @@ export function activate(context: ExtensionContext): Promise<void> {
 
 		client = startLangServer(serverPath, [], cwd);
 	// Check if the language server is ready
-	client.onReady().then(() => {
-		vscode.window.showInformationMessage('Language Server started successfully.');
-	}).catch((error) => {
-		vscode.window.showErrorMessage('Failed to start Language Server: ' + error.message);
-	});
+	// client.onReady().then(() => {
+	// 	vscode.window.showInformationMessage('Language Server started successfully.');
+	// }).catch((error) => {
+	// 	vscode.window.showErrorMessage('Failed to start Language Server: ' + error.message);
+	// });
 
 	// Optional: Register for additional events like server state change
 	client.onDidChangeState((event) => {
 		if (event.newState === 2) { // 2 = Running
 			vscode.window.showInformationMessage('Language Server is running.');
 		}
+		if (event.newState === 1) { // 1 = Stopped
+			vscode.window.showErrorMessage('Language Server stopped.');
+		}
+
 	});
 
 	}
@@ -141,7 +145,7 @@ export function activate(context: ExtensionContext): Promise<void> {
 	);
 	context.subscriptions.push(client.start());
 	process.stdout.write('Returning client from extension activation');
-	return client.onReady();
+	return client;
 }
 
 export function deactivate(): Thenable<void> {

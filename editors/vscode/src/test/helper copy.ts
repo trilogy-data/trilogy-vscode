@@ -5,11 +5,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import {
-	LanguageClient,
-	LanguageClientOptions,
-	ServerOptions,
-} from 'vscode-languageclient';
+import * as assert from 'assert';
 export let doc: vscode.TextDocument;
 export let editor: vscode.TextEditor;
 export let documentEol: string;
@@ -19,17 +15,22 @@ export let platformEol: string;
  */
 export async function activate(docUri: vscode.Uri) {
 	// The extensionId is `publisher.name` from package.json
-	const ext = await vscode.extensions.getExtension('trilogydata.vscode-trilogy-tools')!;
-	const client:LanguageClient = await ext.activate();
-
+	const ext = vscode.extensions.getExtension('trilogydata.vscode-trilogy-tools')!;
+	try {
+		assert.ok(ext);
+		const client = await ext.activate();
+		await client.onReady();
+	} catch (e) {
+		console.error(e);
+		assert.fail(`Test failed with error: ${String(e)}`);
+	}
+	await sleep(2000); // Wait 2 seconds for server activation
 	try {
 		doc = await vscode.workspace.openTextDocument(docUri);
 		editor = await vscode.window.showTextDocument(doc);
-		await client.onReady();
-		
-		await sleep(2000); // Wait 2 seconds for server activation
 	} catch (e) {
 		console.error(e);
+		assert.fail(`Test failed with error: ${String(e)}`);
 	}
 }
 

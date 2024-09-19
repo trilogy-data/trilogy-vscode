@@ -89,8 +89,6 @@ class QueryWrapper extends Component<{ vscode: any }, QueryResultsState> {
         }));
     };
     render() {
-        // @ts-ignore
-        const { vscode } = this.props;
         const { currentPage, headers, data, loading, sql, exception } = this.state;
         if (loading) {
             return (
@@ -154,9 +152,8 @@ const queryWrapperRef = createRef<QueryWrapper>();
 
 (function () {
     const root = ReactDOM.createRoot(document.getElementById("root")!);
-    // @ts-ignore
+    // @ts-expect-error vscode is not defined
     const vscode = acquireVsCodeApi();
-    // @ts-ignore
     root.render(<QueryWrapper ref={queryWrapperRef} vscode={vscode} />);
 
     // Get a reference to the VS Code webview api.

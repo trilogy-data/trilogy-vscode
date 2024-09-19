@@ -15,9 +15,9 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            python-version: "3.11"
+            python-version: "3.12"
           - os: ubuntu-latest
-            python-version: "3.11"
+            python-version: "3.12"
     runs-on: ${{ matrix.os }}
     env: 
       in-ci: "true"
