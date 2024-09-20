@@ -17,7 +17,7 @@
 				
             },
 			"languageServerExample.trace.server": "verbose",
-			"preLaunchTask": "Sleepdelay"
+			// "preLaunchTask": "Sleepdelay"
 		},
 		{
             "name": "Launch Server",

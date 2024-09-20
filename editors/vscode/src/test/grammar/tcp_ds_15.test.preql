@@ -1,0 +1,38 @@
+# SYNTAX TEST "source.trilogy" "tcp_ds_15"
+
+import catalog_sales as catalog_sales;
+# <-----  keyword.control.import.trilogy
+
+auto relevant_sales <- filter catalog_sales.sales_price where catalog_sales.date.quarter = 2 and catalog_sales.date.year = 2001
+# <----  storage.type.trilogy
+
+and  (
+catalog_sales.bill_customer.state in ('CA',
+                       'WA',
+                       'GA')
+OR
+catalog_sales.sales_price > 500
+OR
+SUBSTRING(catalog_sales.bill_customer.zip, 1, 5) IN ('85669',
+                                '86197',
+                                '88274',
+                                '83405',
+                                '86475',
+                                '85392',
+                                '85460',
+                                '80348',
+                                '81792')
+
+);
+
+
+
+select
+# <-----  keyword.control.select.trilogy
+    catalog_sales.bill_customer.zip,
+    sum(relevant_sales) -> sales
+where
+    sales
+order by
+    catalog_sales.bill_customer.zip asc NULLS    FIRST
+limit 100;

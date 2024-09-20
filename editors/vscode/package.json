@@ -1,65 +1,164 @@
 {
 	"name": "vscode-trilogy-tools",
-	"description": "trilogy language server client",
+	"description": "Tools for working with Trilogy, an experiment in better SQL",
 	"author": "N/A",
 	"repository": "https://github.com/trilogydata/trilogy-language-server",
 	"license": "MIT",
-	"version": "0.1.0",
+	"version": "0.1.8",
+	"publisher": "trilogydata",
 	"engines": {
-	  "vscode": "^1.43.0"
+		"vscode": "^1.73.0"
 	},
 	"categories": [
-	  "Programming Languages"
+		"Programming Languages"
+	],
+	"activationEvents": [
+		"onLanguage:trilogy",
+		"onCommand:trilogy.runQuery",
+		"onCommand:trilogy.renderQuery"
 	],
 	"contributes": {
-	  "languages": [
-		{
-		  "id": "trilogy",
-		  "aliases": [
-			"trilogy"
-		  ],
-		  "extensions": [
-			".preql"
-		  ],
-		  "configuration": "./language-configuration.json"
-		}
-	  ],
-	  "grammars": [
-		{
-		  "language": "trilogy",
-		  "scopeName": "source.trilogy",
-      	   "path": "./syntaxes/trilogy.tmLanguage.json"
-		}
-	  ],
-	  "configuration": {
-		"type": "object",
-		"title": "trilogy Language Server Configuration",
-		"properties": {
-		  "trilogyLanguageServer.someConfig": {
-			"scope": "resource",
-			"type": "string",
-			"default": "some default."
-		  }
-		}
-	  }
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "trilogy",
+					"title": "Trilogy",
+					"icon": "$(trilogy-trilogy)"
+				}
+			]
+		},
+		"languages": [
+			{
+				"id": "trilogy",
+				"aliases": [
+					"trilogy"
+				],
+				"extensions": [
+					".preql"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "trilogy",
+				"scopeName": "source.trilogy",
+				"path": "./syntaxes/trilogy.tmLanguage.json",
+				"embeddedLanguages": {
+					"meta.embedded.block.sql": "sql"
+				}
+			}
+		],
+		"commands": [
+			{
+				"command": "trilogy.runQuery",
+				"title": "Run Query",
+				"category": "Trilogy"
+			},
+			{
+				"command": "trilogy.renderQuery",
+				"title": "Render SQL",
+				"category": "Trilogy"
+			}
+		],
+		"configuration": {
+			"type": "object",
+			"title": "trilogy Language Server Configuration",
+			"properties": {
+				"trilogyLanguageServer.someConfig": {
+					"scope": "resource",
+					"type": "string",
+					"default": "some default."
+				},
+				"trilogyLanguageServer.activeDialect": {
+					"type": "array",
+					"description": "The active target SQL dialect.",
+					"items": {
+						"type": "string",
+						"enum": [
+							"duckdb",
+							"presto",
+							"bigquery"
+						]
+					},
+					"uniqueItems": true
+				}
+			}
+		},
+		"icons": {
+			"trilogy-trilogy": {
+				"description": "trilogy icon",
+				"default": {
+					"fontPath": "dist/trilogyicons.woff2",
+					"fontCharacter": "\\f101"
+				}
+			}
+		},
+		"views": {
+			"trilogy": [
+				{
+					"type": "webview",
+					"id": "trilogy.configView",
+					"name": "Configure",
+					"contextualTitle": "Trilogy Config",
+					"icon": "$(trilogy-trilogy)",
+					"initialSize": 6,
+					"visibility": "visible"
+				}
+			]
+		},
+		"customEditors": []
 	},
-	"main": "./out/extension",
+	"main": "./dist/extension.js",
 	"scripts": {
-	  "vscode:prepublish": "npm run compile",
-	  "compile": "tsc -b",
-	  "watch": "tsc -b -w",
-	  "package": "vsce package --out trilogy_tools.vsix"
+		"vscode:prepublish": "node include_dependencies.js && node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"lint": "eslint \"src/**/*.ts\" --fix",
+		"package": "vsce package --out trilogy_tools.vsix",
+		"watch:esbuild": "node esbuild.mjs --watch",
+		"icons:svgo": "svgo -q -f ./images/icons/ --config svgo.config.js",
+		"build:icons": "npm run icons:svgo && fantasticon",
+		"build:css": "tailwindcss -i ./src/media/input.css -o ./dist/output.css --watch",
+		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\"",
+		"test:no-compile": "node ./out/test/runTest.js",
+		"test": "node include_dependencies.js && node build-backend.js && npm run compile && node esbuild.mjs  && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css && node ./out/test/runTest.js"
 	},
 	"dependencies": {
-	  "vscode-languageclient": "^6.1.3"
+		"@types/react": "^18.3.3",
+		"@types/react-dom": "^18.3.0",
+		"@types/react-syntax-highlighter": "^15.5.13",
+		"dotenv": "^16.4.5",
+		"duckdb": "^1.0.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"react-syntax-highlighter": "^15.5.0",
+		"vscode-languageclient": "^6.1.3"
 	},
 	"devDependencies": {
-	  "vsce": "^1.77.0",
-	  "@types/node": "^12.11.7",
-	  "eslint": "^6.4.0",
-	  "@typescript-eslint/parser": "^2.3.0",
-	  "typescript": "^3.8.3",
-	  "@types/vscode": "1.43.0",
-	  "vscode-test": "^1.3.0"
+		"@twbs/fantasticon": "^3.0.0",
+		"@types/chai": "^4.3.19",
+		"@types/glob": "^8.1.0",
+		"@types/mocha": "^10.0.6",
+		"@types/node": "^18",
+		"@types/vscode": "^1.73.0",
+		"@types/vscode-webview": "^1.57.0",
+		"@typescript-eslint/eslint-plugin": "^7.18.0",
+		"@typescript-eslint/parser": "^7.14.0",
+		"@vscode/test-electron": "^2.4.1",
+		"@vscode/vsce": "^2.31.1",
+		"chai": "^5.1.1",
+		"esbuild": "0.23.0",
+		"eslint": "^8.57.0",
+		"mocha": "^10.7.3",
+		"svgo": "^3.3.2",
+		"tailwindcss": "^3.4.7",
+		"typescript": "^5.5.2",
+		"vscode-tmgrammar-test": "^0.1.3"
+	},
+	"binary": {
+		"module_name": "duckdb",
+		"module_path": "./dist/binding/",
+		"host": "https://duckdb-node.s3.amazonaws.com"
 	}
-  }
+}

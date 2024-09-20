@@ -1,13 +1,16 @@
 {
     "compilerOptions": {
+		"jsx": "react",
         "target": "es6",
         "module": "commonjs",
         "sourceMap": true,
         "strict": true,
         "rootDir": "src",
         "outDir": "out",
+        "esModuleInterop": true,
         "lib": [
-            "es6"
+            "es6",
+            "dom"
         ],
         "types": [],
         "skipLibCheck": true,

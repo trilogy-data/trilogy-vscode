@@ -1,77 +1,157 @@
-"use strict";
+'use strict';
 
-import * as net from "net";
-import * as path from "path";
-import { ExtensionContext, workspace } from "vscode";
-import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient";
+import * as net from 'net';
+import * as path from 'path';
+import { ExtensionContext } from 'vscode';
+import {
+	LanguageClient,
+	LanguageClientOptions,
+	ServerOptions,
+	StreamInfo,
+} from 'vscode-languageclient';
+import QueryPanel from './webViews/query/queryPanel';
+import RenderPanel from './webViews/render/renderPanel';
+import * as vscode from 'vscode';
+import { ConfigViewProvider } from "./webViews/config/config-view-provider";
+import * as os from 'os';
+import { spawn, ChildProcess } from 'child_process';
+const isWindows = os.platform() === 'win32';
 
 let client: LanguageClient;
 
 function getClientOptions(): LanguageClientOptions {
-  return {
-    // Register the server for plain text documents
-    documentSelector: [
-      { scheme: "file", language: "trilogy"},
-      { scheme: "untitled", language: "trilogy"},
-    ],
-    outputChannelName: "trilogy",
-    
-    
-  };
+	return {
+		// Register the server for trilogy documents
+		documentSelector: [
+			{ scheme: 'file', language: 'trilogy' },
+			{ scheme: 'untitled', language: 'trilogy' },
+		],
+		outputChannelName: 'trilogy',
+	};
 }
 
 function isStartedInDebugMode(): boolean {
-  return process.env.VSCODE_DEBUG_MODE === "true";
+	return false;
+	// return process.env.VSCODE_DEBUG_MODE === 'true';
 }
+
 
 function startLangServerTCP(addr: number): LanguageClient {
-  const serverOptions: ServerOptions = () => {
-    return new Promise((resolve, reject) => {
-      const clientSocket = new net.Socket();
-      clientSocket.connect(addr, "127.0.0.1", () => {
-        resolve({
-          reader: clientSocket,
-          writer: clientSocket,
-        });
-      });
-    });
-  };
+	const serverOptions: ServerOptions = () => {
+		return new Promise((resolve, reject) => {
+			const clientSocket = new net.Socket();
+			clientSocket.connect(addr, '127.0.0.1', () => {
+				resolve({
+					reader: clientSocket,
+					writer: clientSocket,
+				});
+			});
+		});
+	};
 
-  return new LanguageClient(`tcp lang server (port ${addr})`, serverOptions, getClientOptions());
+	return new LanguageClient(
+		`tcp lang server (port ${addr})`,
+		serverOptions,
+		getClientOptions()
+	);
+}
+function startLangServer(command: string, args: string[], cwd: string): LanguageClient {
+	const serverOptions: ServerOptions = {
+		args,
+		command,
+		options: { cwd },
+	};
+
+	return new LanguageClient(command, serverOptions, getClientOptions());
 }
 
-function startLangServer(
-  command: string, args: string[], cwd: string,
-): LanguageClient {
-  const serverOptions: ServerOptions = {
-    args,
-    command,
-    options: { cwd },
-  };
 
-  return new LanguageClient(command, serverOptions, getClientOptions());
+function registerUI(context: ExtensionContext) {
+	context.subscriptions.push(
+		vscode.commands.registerCommand('trilogy.runQuery', (command) => {
+			QueryPanel.createOrShow(context.extensionUri).then((panel) => {
+				panel.runQuery(command);
+			});
+
+		}),
+		vscode.commands.registerCommand('trilogy.renderQuery', (command, dialect) => {
+			RenderPanel.createOrShow(context.extensionUri).then((panel) => {
+				panel.queryRender(command, dialect);
+			});
+
+		})
+	);
+
+	// Keep this for how to interact with webView
+	// context.subscriptions.push(
+	// 	vscode.commands.registerCommand('trilogy.refresh', () => {
+	// 		if (QueryPanel.currentPanel) {
+	// 			QueryPanel.currentPanel.doRefactor();
+	// 		}
+	// 	})
+	// );
+
+	// if (vscode.window.registerWebviewPanelSerializer) {
+	// 	// Make sure we register a serializer in activation event
+	// 	vscode.window.registerWebviewPanelSerializer(QueryPanel.viewType, {
+	// 		async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+	// 			// Reset the webview options so we use latest uri for `localResourceRoots`.
+	// 			webviewPanel.webview.options = getWebviewOptions(context.extensionUri);
+	// 			QueryPanel.revive(webviewPanel, context.extensionUri);
+	// 		},
+	// 	});
+	// }
+
 }
 
-export function activate(context: ExtensionContext) {
-  if (isStartedInDebugMode()) {
-    // Development - Run the server manually
-    client = startLangServerTCP(2087);
-  } else {
-    // Production - Distribute the LS as a separate package or within the extension?
-    const cwd = path.join(__dirname);
+export function activate(context: ExtensionContext): LanguageClient {
+	registerUI(context);
+	if (isStartedInDebugMode()) {
+		// Development - Run the server manually
+		client = startLangServerTCP(2087);
+	} else {
+		// Production - Start the language server based on the OS
+		const cwd = path.join(__dirname);
+		let serverPath: string;
 
-    // get the vscode python.pythonPath config variable
-    const pythonPath = workspace.getConfiguration("python").get<string>("pythonPath");
-    if (!pythonPath) {
-      throw new Error("`python.pythonPath` is not set");
-    }
+		if (isWindows) {
+			serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server.exe');
+		} else {
+			serverPath = path.join(__dirname, '..', 'dist', 'trilogy-language-server');
+		}
 
-    client = startLangServer(pythonPath, ["-m", "trilogy_language_server"], cwd);
-  }
+		client = startLangServer(serverPath, [], cwd);
+		// Check if the language server is ready
+		// client.onReady().then(() => {
+		// 	vscode.window.showInformationMessage('Language Server started successfully.');
+		// }).catch((error) => {
+		// 	vscode.window.showErrorMessage('Failed to start Language Server: ' + error.message);
+		// });
 
-  context.subscriptions.push(client.start());
+		// Optional: Register for additional events like server state change
+		// client.onDidChangeState((event) => {
+		// 	if (event.newState === 2) { // 2 = Running
+		// 		vscode.window.showInformationMessage('Language Server is running.');
+		// 	}
+		// 	if (event.newState === 1) { // 1 = Stopped
+		// 		vscode.window.showErrorMessage('Language Server stopped.');
+		// 	}
+
+		// });
+
+	}
+
+	const configViewProvider = new ConfigViewProvider(context.extensionUri);
+	vscode.window.registerWebviewViewProvider(
+		ConfigViewProvider.viewType,
+		configViewProvider
+	);
+	context.subscriptions.push(client.start());
+	process.stdout.write('Returning client from extension activation');
+	return client;
 }
 
 export function deactivate(): Thenable<void> {
-  return client ? client.stop() : Promise.resolve();
+	return client ? client.stop() : Promise.resolve();
 }
+

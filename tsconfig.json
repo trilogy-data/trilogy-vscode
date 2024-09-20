@@ -1,11 +1,13 @@
 {
 	"compilerOptions": {
+		"jsx": "react",
 		"module": "commonjs",
 		"target": "es2020",
-		"lib": ["es2020"],
+		"lib": ["es2020","dom"],
 		"outDir": "out",
 		"rootDir": "trilogy_language_server",
-		"sourceMap": true
+		"sourceMap": true,
+		"esModuleInterop": true
 	},
 	"include": [
 		"trilogy_language_server"
@@ -19,3 +21,4 @@
 		{ "path": "./server" }
 	]
 }
+
