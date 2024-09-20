@@ -1,4 +1,4 @@
-name: CI
+name: Build and Publish VCode Extension
 on:
   push:
     branches:
