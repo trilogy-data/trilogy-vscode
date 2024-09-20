@@ -149,8 +149,8 @@ class QueryPanel {
     private async _getHtmlForWebview(webview: vscode.Webview) {
 
         const htmlUri = vscode.Uri.joinPath(
-            this.getRootUri(),
-            "dist/webviews/query.html"
+            this.getWebviewsUri(),
+            "query.html"
         );
         const jsUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this.getWebviewsUri(), "query.js")

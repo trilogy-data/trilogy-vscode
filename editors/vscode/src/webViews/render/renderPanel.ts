@@ -128,8 +128,8 @@ class RenderPanel {
     private async _getHtmlForWebview(webview: vscode.Webview) {
 
         const htmlUri = vscode.Uri.joinPath(
-            this.getRootUri(),
-            "dist/webviews/render.html"
+            this.getWebviewsUri(),
+            "render.html"
         );
         const jsUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this.getWebviewsUri(), "render.js")
