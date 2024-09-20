@@ -101,7 +101,7 @@ function registerUI(context: ExtensionContext) {
 
 }
 
-export async function activate(context: ExtensionContext): Promise<LanguageClient> {
+export function activate(context: ExtensionContext): LanguageClient {
 	registerUI(context);
 	if (isStartedInDebugMode()) {
 		// Development - Run the server manually
@@ -126,15 +126,15 @@ export async function activate(context: ExtensionContext): Promise<LanguageClien
 	// });
 
 	// Optional: Register for additional events like server state change
-	client.onDidChangeState((event) => {
-		if (event.newState === 2) { // 2 = Running
-			vscode.window.showInformationMessage('Language Server is running.');
-		}
-		if (event.newState === 1) { // 1 = Stopped
-			vscode.window.showErrorMessage('Language Server stopped.');
-		}
+	// client.onDidChangeState((event) => {
+	// 	if (event.newState === 2) { // 2 = Running
+	// 		vscode.window.showInformationMessage('Language Server is running.');
+	// 	}
+	// 	if (event.newState === 1) { // 1 = Stopped
+	// 		vscode.window.showErrorMessage('Language Server stopped.');
+	// 	}
 
-	});
+	// });
 
 	}
 

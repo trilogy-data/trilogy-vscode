@@ -26,8 +26,7 @@ export async function activate(docUri: vscode.Uri) {
 		doc = await vscode.workspace.openTextDocument(docUri);
 		editor = await vscode.window.showTextDocument(doc);
 		await client.onReady();
-
-		await sleep(2000); // Wait 2 seconds for server activation
+		return sleep(2000); // Wait 2 seconds for server activation
 	} catch (e) {
 		console.error(e);
 	}
@@ -35,14 +34,13 @@ export async function activate(docUri: vscode.Uri) {
 
 
 export async function activateTwo(docUri: vscode.Uri, done: Mocha.Done) {
-	// The extensionId is `publisher.name` from package.json
-	const ext = await vscode.extensions.getExtension('trilogydata.vscode-trilogy-tools')!;
-	const client: LanguageClient = await ext.activate();
-
 	try {
+		const ext = await vscode.extensions.getExtension('trilogydata.vscode-trilogy-tools')!;
+		const client: LanguageClient = await ext.activate();
 		doc = await vscode.workspace.openTextDocument(docUri);
 		editor = await vscode.window.showTextDocument(doc);
-		await client.onDidChangeState((event) => {
+		return client.onDidChangeState((event) => {
+			
 			if (event.newState === 2) { // 2 = Running
 				vscode.window.showInformationMessage('Language Server is running.');
 				done();
@@ -52,12 +50,10 @@ export async function activateTwo(docUri: vscode.Uri, done: Mocha.Done) {
 				done('Language Server stopped.');
 			}
 		});
-		await client.onReady();
-
-		await sleep(2000); // Wait 2 seconds for server activation
+		// await client.onReady();
 	} catch (e) {
 		console.error(e);
-		done(e);
+		throw e;
 	}
 }
 
