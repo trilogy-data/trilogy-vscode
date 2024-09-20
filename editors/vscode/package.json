@@ -122,7 +122,7 @@
 		"build:css": "tailwindcss -i ./src/media/input.css -o ./dist/output.css --watch",
 		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\"",
 		"test:no-compile": "node ./out/test/runTest.js",
-		"test": "node include_dependencies.js && node build-backend.js && npm run compile && node esbuild.mjs --production && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css && node ./out/test/runTest.js"
+		"test": "node include_dependencies.js && node build-backend.js && npm run compile && node esbuild.mjs  && npm run icons:svgo && fantasticon && tailwindcss -i ./src/media/input.css -o ./dist/output.css && node ./out/test/runTest.js"
 	},
 	"dependencies": {
 		"@types/react": "^18.3.3",

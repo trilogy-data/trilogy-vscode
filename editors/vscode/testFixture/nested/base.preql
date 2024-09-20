@@ -1,0 +1,9 @@
+key x int;
+
+
+datasource tests (
+  x:x
+)
+grain (x)
+address funky;
+

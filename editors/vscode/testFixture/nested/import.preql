@@ -1,0 +1,4 @@
+
+import base as base;
+
+select base.x;

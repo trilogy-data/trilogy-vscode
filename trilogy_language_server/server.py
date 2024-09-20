@@ -40,6 +40,7 @@ from trilogy.parsing.parse_engine import ParseToObjects, PARSER
 from trilogy.core.models import Environment
 from trilogy.dialect.duckdb import DuckDBDialect
 import re
+from pathlib import Path
 
 TokenTypes = ["keyword", "variable", "function", "operator", "parameter", "type"]
 
@@ -82,8 +83,10 @@ class TrilogyLanguageServer(LanguageServer):
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
         environment = self.environments.get(uri, None)
+        fs_path = Path(to_fs_path(uri))
+        env_path = fs_path.parent
         if not environment:
-            environment = Environment(working_path=to_fs_path(self.workspace.root_uri))
+            environment = Environment(working_path=env_path)
             self.environments[uri] = environment
         lenses = code_lense_tree(
             environment=environment,
@@ -93,9 +96,7 @@ class TrilogyLanguageServer(LanguageServer):
         )
         self.code_lens[uri] = lenses
         if lenses:
-            self.show_message(
-                f"Found {len(lenses)} queries for path {to_fs_path(self.workspace.root_uri)}"
-            )
+            self.show_message(f"Found {len(lenses)} queries for path {env_path}")
 
 
 trilogy_server = TrilogyLanguageServer()
