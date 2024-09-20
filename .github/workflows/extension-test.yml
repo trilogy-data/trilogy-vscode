@@ -19,8 +19,6 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.12"
     runs-on: ${{ matrix.os }}
-    env: 
-      in-ci: "true"
     steps:
         - uses: actions/checkout@v4
         - uses: actions/setup-python@v4
