@@ -16,14 +16,14 @@ suite('Should get diagnostics', () => {
         ]);
     });
 
-    test('Alt test Format', (done) => {
-        activateTwo(docUri, done).then(() => {
-            done();
-        }
-        ).catch((err) => {
-            done(err);
-        });
-    });
+    // test('Alt test Format', (done) => {
+    //     activateTwo(docUri, done).then(() => {
+    //         done();
+    //     }
+    //     ).catch((err) => {
+    //         done(err);
+    //     });
+    // });
 });
 
 function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {

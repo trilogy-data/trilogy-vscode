@@ -7,12 +7,14 @@ import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
+	StreamInfo,
 } from 'vscode-languageclient';
 import QueryPanel from './webViews/query/queryPanel';
 import RenderPanel from './webViews/render/renderPanel';
 import * as vscode from 'vscode';
 import { ConfigViewProvider } from "./webViews/config/config-view-provider";
 import * as os from 'os';
+import { spawn, ChildProcess } from 'child_process';
 const isWindows = os.platform() === 'win32';
 
 let client: LanguageClient;
@@ -32,6 +34,7 @@ function isStartedInDebugMode(): boolean {
 	return false;
 	// return process.env.VSCODE_DEBUG_MODE === 'true';
 }
+
 
 function startLangServerTCP(addr: number): LanguageClient {
 	const serverOptions: ServerOptions = () => {
@@ -54,13 +57,68 @@ function startLangServerTCP(addr: number): LanguageClient {
 }
 
 function startLangServer(command: string, args: string[], cwd: string): LanguageClient {
-	const serverOptions: ServerOptions = {
-		args,
-		command,
-		options: { cwd },
+	// const serverOptions: ServerOptions = {
+	// 	args,
+	// 	command,
+	// 	options: { cwd },
+	// };
+	const serverOptions: ServerOptions = (): Promise<StreamInfo> => {
+		return new Promise((resolve, reject) => {
+			// Path to the language server executable
+
+
+			// Spawn the language server process
+			const serverProcess: ChildProcess = spawn(command, [], {
+				cwd: cwd,  // Set working directory if necessary
+			});
+			if (!serverProcess.stdout) {
+				console.error('Failed to start language server');
+				reject(new Error('Failed to start language server'));
+			}
+			else {
+				serverProcess.stdout.on('data', (data) => {
+					console.log(`Language Server Output: ${data}`);
+				});
+
+			}
+			// Listen to stdout and log language server output
+
+			// Listen to stderr and log language server errors
+			if (!serverProcess.stderr) {
+				console.error('Failed to start language server');
+				reject(new Error('Failed to start language server'));
+			}
+			else {
+				serverProcess.stderr.on('data', (data) => {
+					console.error(`Language Server Error: ${data}`);
+					vscode.window.showErrorMessage(`Language Server Error: ${data}`);
+				});
+			}
+			// Listen for server exit and handle it
+			serverProcess.on('exit', (code, signal) => {
+				console.log(`Language Server exited with code ${code} and signal ${signal}`);
+				if (code !== 0) {
+					vscode.window.showErrorMessage(`Language Server exited unexpectedly with code ${code}`);
+					reject(new Error(`Language Server exited with code ${code}`));
+				}
+			});
+
+			// Resolve the StreamInfo (reader and writer)
+			resolve({
+				reader: serverProcess.stdout!,
+				writer: serverProcess.stdin!,
+			});
+		});
+	};
+	const clientOptions: LanguageClientOptions = {
+		documentSelector: [{ scheme: 'file', language: 'trilogy' }],
 	};
 
-	return new LanguageClient(command, serverOptions, getClientOptions());
+	// Create and start the LanguageClient
+	client = new LanguageClient('exampleLanguageServer', 'Example Language Server', serverOptions, clientOptions);
+	// client.start();
+	return client;
+	// return new LanguageClient(command, serverOptions, getClientOptions());
 }
 
 function registerUI(context: ExtensionContext) {
@@ -118,23 +176,23 @@ export function activate(context: ExtensionContext): LanguageClient {
 		}
 
 		client = startLangServer(serverPath, [], cwd);
-	// Check if the language server is ready
-	// client.onReady().then(() => {
-	// 	vscode.window.showInformationMessage('Language Server started successfully.');
-	// }).catch((error) => {
-	// 	vscode.window.showErrorMessage('Failed to start Language Server: ' + error.message);
-	// });
+		// Check if the language server is ready
+		// client.onReady().then(() => {
+		// 	vscode.window.showInformationMessage('Language Server started successfully.');
+		// }).catch((error) => {
+		// 	vscode.window.showErrorMessage('Failed to start Language Server: ' + error.message);
+		// });
 
-	// Optional: Register for additional events like server state change
-	// client.onDidChangeState((event) => {
-	// 	if (event.newState === 2) { // 2 = Running
-	// 		vscode.window.showInformationMessage('Language Server is running.');
-	// 	}
-	// 	if (event.newState === 1) { // 1 = Stopped
-	// 		vscode.window.showErrorMessage('Language Server stopped.');
-	// 	}
+		// Optional: Register for additional events like server state change
+		// client.onDidChangeState((event) => {
+		// 	if (event.newState === 2) { // 2 = Running
+		// 		vscode.window.showInformationMessage('Language Server is running.');
+		// 	}
+		// 	if (event.newState === 1) { // 1 = Stopped
+		// 		vscode.window.showErrorMessage('Language Server stopped.');
+		// 	}
 
-	// });
+		// });
 
 	}
 
