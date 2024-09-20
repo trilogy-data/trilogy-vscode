@@ -33,34 +33,6 @@ export async function activate(docUri: vscode.Uri) {
 }
 
 
-function waitForStateChange(client:LanguageClient): Promise<any> {
-    return new Promise((resolve, reject) => {
-        client.onDidChangeState((event) => {
-            if (event.newState === 2) { // 2 = Running
-                vscode.window.showInformationMessage('Language Server is running.');
-                resolve(event);  // Resolve the promise when the server is running
-            } else if (event.newState === 1) { // 1 = Stopped
-                vscode.window.showErrorMessage('Language Server stopped.');
-                reject(new Error('Language Server stopped')); // Reject the promise
-            } else {
-                reject(new Error('Unexpected state change: ' + String(event))); // Reject on unexpected state
-            }
-        });
-    });
-}
-
-
-export async function activateTwo(docUri: vscode.Uri, done: Mocha.Done) {
-	try {
-		const ext = await vscode.extensions.getExtension('trilogydata.vscode-trilogy-tools')!;
-		const client: LanguageClient = await ext.activate();
-		return waitForStateChange(client);
-	} catch (e) {
-		console.error(e);
-		throw e;
-	}
-}
-
 
 
 async function sleep(ms: number) {
