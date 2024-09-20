@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - "mvp-other-stuff"
+      - "main"
     tags:
       - "v*"
 jobs:
