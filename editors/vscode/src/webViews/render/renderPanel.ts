@@ -122,7 +122,7 @@ class RenderPanel {
     }
 
     private getWebviewsUri() {
-        return vscode.Uri.joinPath(this.getRootUri(), "dist/webviews");
+        return vscode.Uri.joinPath(this.getRootUri(), "dist/webViews/render");
     }
 
     private async _getHtmlForWebview(webview: vscode.Webview) {

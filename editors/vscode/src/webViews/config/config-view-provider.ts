@@ -36,7 +36,7 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
     return this.extensionUri;
   }
   private getWebviewsUri() {
-    return vscode.Uri.joinPath(this.getRootUri(), "dist/webviews");
+    return vscode.Uri.joinPath(this.getRootUri(), "dist/webViews/config");
   }
 
   
