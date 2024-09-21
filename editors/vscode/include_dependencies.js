@@ -58,7 +58,7 @@ function findHtmlFiles(dir, fileList = []) {
 // Copy all HTML files from webViews to dist
 function copyHtmlFiles() {
     const webViewsDir = path.resolve(__dirname, './src/webViews');
-    const distWebViewsDir = path.resolve(__dirname, './dist/webviews');
+    const distWebViewsDir = path.resolve(__dirname, './dist/webViews');
     const htmlFiles = findHtmlFiles(webViewsDir);
 
     htmlFiles.forEach(htmlFile => {
