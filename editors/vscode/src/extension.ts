@@ -75,8 +75,10 @@ function registerUI(context: ExtensionContext) {
 
 		}),
 		vscode.commands.registerCommand('trilogy.renderQuery', (command, dialect) => {
-			RenderPanel.createOrShow(context.extensionUri).then((panel) => {
-				panel.queryRender(command, dialect);
+			return RenderPanel.createOrShow(context.extensionUri).then((panel) => {
+				return panel.queryRender(command, dialect).then((panel) => {
+					return panel;
+				});
 			});
 
 		})
@@ -121,12 +123,12 @@ export function activate(context: ExtensionContext): LanguageClient {
 		}
 
 		client = startLangServer(serverPath, [], cwd);
-		// Check if the language server is ready
-		// client.onReady().then(() => {
-		// 	vscode.window.showInformationMessage('Language Server started successfully.');
-		// }).catch((error) => {
-		// 	vscode.window.showErrorMessage('Failed to start Language Server: ' + error.message);
-		// });
+
+		client.onReady().then(() => {
+			vscode.window.showInformationMessage('Language Server started successfully.');
+		}).catch((error) => {
+			vscode.window.showErrorMessage('Failed to start Language Server: ' + error.message);
+		});
 
 		// Optional: Register for additional events like server state change
 		// client.onDidChangeState((event) => {
@@ -147,7 +149,6 @@ export function activate(context: ExtensionContext): LanguageClient {
 		configViewProvider
 	);
 	context.subscriptions.push(client.start());
-	process.stdout.write('Returning client from extension activation');
 	return client;
 }
 
