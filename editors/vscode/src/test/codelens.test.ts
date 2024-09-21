@@ -10,7 +10,7 @@ import { getDocUri, activate } from './helper';
 suite('Should get CodeLens', () => {
 	const docUri = getDocUri('nested/import.preql');
 
-	test('Diagnoses uppercase texts', async () => {
+	test('Validate codelens additions', async () => {
 		await testCodeLens(docUri, [
 			{ command: { title: `Run Query`, command: 'select 1' }, range: toRange(3, 1, 3, 10), isResolved: true },
 			{ command: { title: `Render SQL`, command: 'select 1' }, range: toRange(3, 2, 3, 10), isResolved: true },

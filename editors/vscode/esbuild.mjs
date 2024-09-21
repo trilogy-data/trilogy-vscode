@@ -35,15 +35,15 @@ const entryConfigs = [
     },
     {
       entryPoints: ['src/webViews/config/config.tsx'],
-      outfile: 'dist/webviews/config.js',
+      outfile: 'dist/webViews/config/config.js',
     },
     {
         entryPoints: ['src/webViews/query/queryPanelContent.tsx'],
-        outfile: 'dist/webviews/query.js',
+        outfile: 'dist/webViews/query/query.js',
       },
       {
         entryPoints: ['src/webViews/render/renderPanelContent.tsx'],
-        outfile: 'dist/webviews/render.js',
+        outfile: 'dist/webViews/render/render.js',
       }
   ];
   

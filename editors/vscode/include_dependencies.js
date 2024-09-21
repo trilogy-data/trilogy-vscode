@@ -52,7 +52,9 @@ function findHtmlFiles(dir, fileList = []) {
 
     return fileList;
 }
-
+//c:\Users\ethan\.vscode\extensions\trilogydata.vscode-trilogy-tools-0.1.8-win32-x64\dist\webviews\render.html'
+//c:\Users\ethan\coding_projects\vscode-extension-samples\lsp-sample\editors\vscode\dist\webviews\render.html'
+//C:\Users\ethan\coding_projects\vscode-extension-samples\lsp-sample\editors\vscode\dist\webviews
 // Copy all HTML files from webViews to dist
 function copyHtmlFiles() {
     const webViewsDir = path.resolve(__dirname, './src/webViews');

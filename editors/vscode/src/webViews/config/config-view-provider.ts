@@ -8,7 +8,7 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
 
   private _view?: vscode.WebviewView;
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(private readonly extensionUri: vscode.Uri) { }
 
   public async resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -36,15 +36,15 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
     return this.extensionUri;
   }
   private getWebviewsUri() {
-    return vscode.Uri.joinPath(this.getRootUri(), "dist/webviews");
+    return vscode.Uri.joinPath(this.getRootUri(), "dist/webViews/config");
   }
 
-  
-  
+
+
   private async getHtmlForWebview(webview: vscode.Webview) {
     const htmlUri = vscode.Uri.joinPath(
-      this.getRootUri(),
-      "dist/webviews/config.html"
+      this.getWebviewsUri(),
+      "config.html"
     );
     const jsUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.getWebviewsUri(), "config.js")
@@ -54,7 +54,7 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
     );
 
     const [bytes] = await Promise.all([vscode.workspace.fs.readFile(htmlUri)]);
-    
+
     const html = replaceWebviewHtmlTokens(utf8TextDecoder.decode(bytes), {
       cspSource: webview.cspSource,
       cspNonce: getNonce(),

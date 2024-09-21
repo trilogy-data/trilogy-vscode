@@ -13,25 +13,25 @@ class RenderPanel {
 
     public static readonly viewType = 'renderPanel';
 
-    private readonly _panel: vscode.WebviewPanel;
+    public readonly panel: vscode.WebviewPanel;
     private readonly _extensionUri: vscode.Uri;
     private _last_msg: IMessage | null;
     private _renderDocument!: RenderDocument;
     private _disposables: vscode.Disposable[] = [];
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
-        this._panel = panel;
+        this.panel = panel;
         this._extensionUri = extensionUri;
         this._last_msg = null;
 
         // Listen for when the panel is disposed
         // This happens when the user closes the panel or when the panel is closed programmatically
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this.panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
         // Update the content based on view changes
-        this._panel.onDidChangeViewState(
+        this.panel.onDidChangeViewState(
             e => {
-                if (this._panel.visible) {
+                if (this.panel.visible) {
                     this._update();
                 }
             },
@@ -41,12 +41,13 @@ class RenderPanel {
 
     }
 
-    public async queryRender(sqlQueries: Array<string>, dialect:string) {
+    public async queryRender(sqlQueries: Array<string>, dialect:string):Promise<vscode.WebviewPanel> {
                 // this._queryDocument.runQuery(query, 100, (msg: IMessage) => { this._last_msg = msg; this._panel.webview.postMessage(msg) });
         const msg: IMessage = { type: 'render-queries', renderQueries:sqlQueries, dialect:dialect };
         this._last_msg = msg;
-        this._panel.webview.postMessage(msg);
-
+        this.panel.webview.postMessage(msg);
+        return this.panel;
+        
 
     }
 
@@ -57,7 +58,7 @@ class RenderPanel {
 
         // If we already have a panel, show it.
         if (RenderPanel.currentPanel) {
-            RenderPanel.currentPanel._panel.reveal(column);
+            RenderPanel.currentPanel.panel.reveal(column);
             return RenderPanel.currentPanel;
         }
 
@@ -80,7 +81,7 @@ class RenderPanel {
     private static async create(panel: vscode.WebviewPanel, extensionUri: vscode.Uri): Promise<RenderPanel> {
         const renderPanel = new RenderPanel(panel, extensionUri);
         await renderPanel.initializeRenderDocument(extensionUri);
-        renderPanel._update();
+        await renderPanel._update();
         return renderPanel;
     }
 
@@ -97,7 +98,7 @@ class RenderPanel {
         RenderPanel.currentPanel = undefined;
 
         // Clean up our resources
-        this._panel.dispose();
+        this.panel.dispose();
 
         while (this._disposables.length) {
             const x = this._disposables.pop();
@@ -108,12 +109,12 @@ class RenderPanel {
     }
 
     private async _update() {
-        const webview = this._panel.webview;
-        if (!this._panel.webview.html) {
-            this._panel.webview.html = await this._getHtmlForWebview(webview);
+        const webview = this.panel.webview;
+        if (!this.panel.webview.html) {
+            this.panel.webview.html = await this._getHtmlForWebview(webview);
         }
         if (this._last_msg) {
-            this._panel.webview.postMessage(this._last_msg);
+            await this.panel.webview.postMessage(this._last_msg);
         }
     }
 
@@ -122,14 +123,14 @@ class RenderPanel {
     }
 
     private getWebviewsUri() {
-        return vscode.Uri.joinPath(this.getRootUri(), "dist/webviews");
+        return vscode.Uri.joinPath(this.getRootUri(), "dist/webViews/render");
     }
 
     private async _getHtmlForWebview(webview: vscode.Webview) {
 
         const htmlUri = vscode.Uri.joinPath(
-            this.getRootUri(),
-            "dist/webviews/render.html"
+            this.getWebviewsUri(),
+            "render.html"
         );
         const jsUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this.getWebviewsUri(), "render.js")
@@ -151,9 +152,6 @@ class RenderPanel {
         return html;
     }
 
-    private postMessage(panel: vscode.WebviewPanel, message: IMessage): void {
-        panel.webview.postMessage(message);
-    }
 }
 
 

@@ -1,6 +1,6 @@
 
 import ReactDOM from "react-dom/client";
-import React, { Component, createRef, FormEvent } from 'react'
+import React, { Component, createRef, FormEvent } from 'react';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import sql from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
 import { tomorrowNight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
@@ -39,7 +39,7 @@ class RenderWrapper extends Component<{ vscode: any }, QueryResultsState> {
 					</div>
 				))}
 			</div>
-		)
+		);
 	}
 }
 
@@ -47,9 +47,9 @@ const queryWrapperRef = createRef<RenderWrapper>();
 
 (function () {
 	const root = ReactDOM.createRoot(document.getElementById("root")!);
-	// @ts-ignore
+	// @ts-expect-error vscode is not defined
 	const vscode = acquireVsCodeApi();
-	// @ts-ignore
+
 	root.render(<RenderWrapper ref={queryWrapperRef} vscode={vscode} />);
 
 	// Get a reference to the VS Code webview api.
@@ -66,7 +66,6 @@ const queryWrapperRef = createRef<RenderWrapper>();
 				return;
 			case 'render-queries':
 				if (queryWrapperRef.current) {
-					console.log(message)
 					queryWrapperRef.current.setState({ renderQueries: message.renderQueries, dialect: message.dialect });
 				}
 				return;
