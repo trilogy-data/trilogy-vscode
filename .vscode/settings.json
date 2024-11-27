@@ -4,5 +4,10 @@
 	"typescript.preferences.quoteStyle": "single",
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "explicit"
-	}
+	},
+	"python.testing.pytestArgs": [
+		"trilogy_language_server"
+	],
+	"python.testing.unittestEnabled": false,
+	"python.testing.pytestEnabled": true
 }
