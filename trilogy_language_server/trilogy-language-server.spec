@@ -37,8 +37,7 @@ def get_trilogy_lark_file():
     return inclusion_files
 
 # TODO: evaluate if we want public models by default
-# datas = get_trilogy_data_files() + get_trilogy_nlp_template_files() +  get_trilogy_lark_file()
-datas = get_trilogy_nlp_template_files() +  get_trilogy_lark_file()
+datas = get_trilogy_lark_file()
 binaries = []
 hiddenimports = ['sqlalchemy_bigquery']
 tmp_ret = collect_all('duckdb')
