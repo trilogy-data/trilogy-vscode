@@ -10,3 +10,7 @@ dist
 .pytest_cache
 python.tmLanguage.json
 converterPython.tmLanguage.xml
+.mypy_cache
+.vscode
+.venv
+.mypy_cache
