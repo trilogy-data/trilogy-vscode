@@ -25,18 +25,6 @@ def get_trilogy_data_files():
                 inclusion_files.append(( str(f), str(subroot)))
     return inclusion_files
 
-def get_trilogy_nlp_template_files():
-    root = sys.modules.get(f'trilogy_nlp')
-    root = Path(root.__file__).parent
-
-    inclusion_files = []
-    for f in (root / 'prompts').iterdir():
-        if f.suffix == '.jinja2':
-            subroot = Path('trilogy_nlp')  / 'prompts'
-            inclusion_files.append(( str(f), str(subroot)))
-    return inclusion_files
-
-
 def get_trilogy_lark_file():
     root = sys.modules.get(f'trilogy')
     root = Path(root.__file__).parent
