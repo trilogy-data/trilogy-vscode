@@ -1,1 +1,4 @@
 .mypy_cache
+.vscode
+.venv
+.mypy_cache

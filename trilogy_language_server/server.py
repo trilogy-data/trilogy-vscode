@@ -110,12 +110,16 @@ def format_document(ls: LanguageServer, params: DocumentFormattingParams):
     doc = ls.workspace.get_text_document(params.text_document.uri)
     r = Renderer()
     env = Environment()
+    parser = ParseToObjects(environment=env)
+    parser.set_text(doc.source)
+    parser.prepare_parse()
+    parser.transform(PARSER.parse(doc.source))
+    # this will reset fail on missing
+    pass_two = parser.hydrate_missing()
     return "\n".join(
         [
             r.to_string(v)
-            for v in ParseToObjects(
-                visit_tokens=True, text=doc.source, environment=env
-            ).transform(PARSER.parse(doc.source))
+            for v in pass_two
         ]
     )
 

@@ -167,12 +167,13 @@ def code_lense_tree(
     environment: Environment, text, input: ParseTree, dialect: BaseDialect
 ) -> List[CodeLens]:
     tokens = []
-    parsed = ParseToObjects(
-        visit_tokens=True,
-        text=text,
-        environment=environment,
-    ).transform(input)
-    for idx, stmt in enumerate(parsed):
+    parser = ParseToObjects(environment=environment)
+    parser.set_text(text)
+    parser.prepare_parse()
+    parser.transform(input)
+    # this will reset fail on missing
+    pass_two = parser.hydrate_missing()
+    for idx, stmt in enumerate(pass_two):
         try:
             x = parse_statement(idx, stmt, dialect, environment=environment)
             if x:

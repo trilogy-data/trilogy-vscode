@@ -17,7 +17,9 @@ At some point, it should provide
 
 Trilogy is a simpler SQL for analytics; SELECT queries looks like SQL but run against a lightweight semantic model defined in the same language, instead of tables.
 
-Trilogy looks like this:
+Read more about Trilogy [here](https://trilogydata.dev/)
+
+Trilogy looks like SQL, but without the FROM/JOIN/GROUP BY:
 
 ```sql
 SELECT

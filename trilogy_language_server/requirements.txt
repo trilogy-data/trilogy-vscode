@@ -1,5 +1,5 @@
 pygls
-pytrilogy>=0.0.1.116
+pytrilogy>=0.0.2.44
 pytrilogy-nlp
 google-cloud-bigquery
 sqlalchemy-bigquery

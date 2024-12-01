@@ -46,8 +46,8 @@ def test_code_lense_tree():
     )
     expected_query = """
 SELECT
-    1 as "omicron",
-    1 as "test"
+    :omicron as "omicron",
+    :test as "test"
 """
     assert comp[0].command.arguments[0] == expected_query
     assert comp[0] == CodeLens(
