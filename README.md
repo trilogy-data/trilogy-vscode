@@ -2,7 +2,7 @@
 
 ## trilogy_language_server 
 
-Python based language server.
+Python based language server for the Trilogy language.
 
 ## editors/vscode
 
