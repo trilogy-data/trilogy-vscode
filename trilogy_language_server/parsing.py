@@ -4,7 +4,7 @@ from lark import ParseTree, Token as LarkToken
 from typing import List, Union
 from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.parsing.parse_engine import ParseToObjects as ParseToObjects
-from trilogy.core.models import (
+from trilogy.core.statements.author import (
     SelectStatement,
     MultiSelectStatement,
     PersistStatement,
@@ -172,7 +172,7 @@ def code_lense_tree(
     parser.prepare_parse()
     parser.transform(input)
     # this will reset fail on missing
-    pass_two = parser.hydrate_missing()
+    pass_two = parser.run_second_parse_pass()
     for idx, stmt in enumerate(pass_two):
         try:
             x = parse_statement(idx, stmt, dialect, environment=environment)
