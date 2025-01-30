@@ -8,7 +8,7 @@ from trilogy_language_server.models import Token, TokenModifier
 from trilogy_language_server.parsing import tree_to_symbols, gen_tree, code_lense_tree
 from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.dialect.duckdb import DuckDBDialect
-from trilogy.core.models import Environment
+from trilogy.authoring import Environment
 import sys
 
 

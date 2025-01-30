@@ -37,7 +37,7 @@ from trilogy_language_server.models import TokenModifier, Token
 from trilogy_language_server.parsing import tree_to_symbols, code_lense_tree
 from trilogy.parsing.render import Renderer
 from trilogy.parsing.parse_engine import ParseToObjects, PARSER
-from trilogy.core.models import Environment
+from trilogy.authoring import Environment
 from trilogy.dialect.duckdb import DuckDBDialect
 import re
 from pathlib import Path
@@ -115,13 +115,8 @@ def format_document(ls: LanguageServer, params: DocumentFormattingParams):
     parser.prepare_parse()
     parser.transform(PARSER.parse(doc.source))
     # this will reset fail on missing
-    pass_two = parser.hydrate_missing()
-    return "\n".join(
-        [
-            r.to_string(v)
-            for v in pass_two
-        ]
-    )
+    pass_two = parser.run_second_parse_pass()
+    return "\n".join([r.to_string(v) for v in pass_two])
 
 
 @trilogy_server.feature(
