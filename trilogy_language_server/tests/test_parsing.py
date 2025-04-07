@@ -44,8 +44,7 @@ def test_code_lense_tree():
     comp = code_lense_tree(
         environment=Environment(), text=basic, input=tree, dialect=dialect
     )
-    expected_query = """
-SELECT
+    expected_query = """SELECT
     :omicron as "omicron",
     :test as "test"
 """
