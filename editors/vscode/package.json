@@ -12,6 +12,11 @@
 	"categories": [
 		"Programming Languages"
 	],
+	"activationEvents": [
+		"onLanguage:trilogy",
+		"onCommand:trilogy.runQuery",
+		"onCommand:trilogy.renderQuery"
+	],
 	"contributes": {
 		"viewsContainers": {
 			"activitybar": [
@@ -74,7 +79,7 @@
 							"duckdb",
 							"presto",
 							"bigquery",
-							"snowflake"
+							"snowflake",
 						]
 					},
 					"uniqueItems": true
