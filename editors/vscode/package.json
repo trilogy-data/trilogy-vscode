@@ -79,7 +79,7 @@
 							"duckdb",
 							"presto",
 							"bigquery",
-							"snowflake",
+							"snowflake"
 						]
 					},
 					"uniqueItems": true
