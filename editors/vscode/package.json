@@ -78,7 +78,8 @@
 						"enum": [
 							"duckdb",
 							"presto",
-							"bigquery"
+							"bigquery",
+							"snowflake"
 						]
 					},
 					"uniqueItems": true
