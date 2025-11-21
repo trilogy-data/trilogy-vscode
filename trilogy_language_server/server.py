@@ -1,5 +1,5 @@
 import typing as t
-from pygls.server import LanguageServer
+from pygls.lsp.server import LanguageServer
 from pygls.uris import to_fs_path
 from lsprotocol.types import (
     TEXT_DOCUMENT_COMPLETION,
@@ -27,6 +27,7 @@ from lsprotocol.types import (
     ShowMessageParams,
     LogMessageParams,
     MessageType,
+    PublishDiagnosticsParams,
 )
 from functools import reduce
 from typing import Dict, List, Optional
@@ -66,10 +67,14 @@ class TrilogyLanguageServer(LanguageServer):
         self: "TrilogyLanguageServer",
         params: t.Union[DidChangeTextDocumentParams, DidOpenTextDocumentParams],
     ):
-        self.show_message_log("Validating document...")
-        text_doc = self.workspace.get_document(params.text_document.uri)
+        self.window_log_message(
+            LogMessageParams(type=MessageType.Log, message="Validating document...")
+        )
+        text_doc = self.workspace.get_text_document(params.text_document.uri)
         raw_tree, diagnostics = get_diagnostics(text_doc.source)
-        self.publish_diagnostics(text_doc.uri, diagnostics)
+        self.text_document_publish_diagnostics(
+            PublishDiagnosticsParams(uri=text_doc.uri, diagnostics=diagnostics)
+        )
         if raw_tree:
             self.publish_tokens(text_doc.source, raw_tree, text_doc.uri)
             self.publish_code_lens(text_doc.source, raw_tree, text_doc.uri)
@@ -83,7 +88,10 @@ class TrilogyLanguageServer(LanguageServer):
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
         environment = self.environments.get(uri, None)
-        fs_path = Path(to_fs_path(uri))
+        fs_path_str = to_fs_path(uri)
+        if fs_path_str is None:
+            return
+        fs_path = Path(fs_path_str)
         env_path = fs_path.parent
         if not environment:
             environment = Environment(working_path=env_path)
@@ -96,7 +104,12 @@ class TrilogyLanguageServer(LanguageServer):
         )
         self.code_lens[uri] = lenses
         if lenses:
-            self.show_message(f"Found {len(lenses)} queries for path {env_path}")
+            self.window_show_message(
+                ShowMessageParams(
+                    type=MessageType.Info,
+                    message=f"Found {len(lenses)} queries for path {env_path}",
+                )
+            )
 
 
 trilogy_server = TrilogyLanguageServer()
@@ -105,7 +118,9 @@ trilogy_server = TrilogyLanguageServer()
 @trilogy_server.feature(TEXT_DOCUMENT_FORMATTING)
 def format_document(ls: LanguageServer, params: DocumentFormattingParams):
     """Format the entire document"""
-    ls.show_message_log("Formatting called @ {}".format(params))
+    ls.window_log_message(
+        LogMessageParams(type=MessageType.Log, message=f"Formatting called @ {params}")
+    )
 
     doc = ls.workspace.get_text_document(params.text_document.uri)
     r = Renderer()
@@ -125,7 +140,11 @@ def format_document(ls: LanguageServer, params: DocumentFormattingParams):
 def completions(ls: TrilogyLanguageServer, params: Optional[CompletionParams] = None):
     """Returns completion items."""
     if params is not None:
-        ls.show_message_log("completion called @ {}".format(params.position))
+        ls.window_log_message(
+            LogMessageParams(
+                type=MessageType.Log, message=f"completion called @ {params.position}"
+            )
+        )
     items: t.List[CompletionItem] = []
     return CompletionList(False, items)
 
@@ -159,7 +178,11 @@ def semantic_tokens_full(ls: TrilogyLanguageServer, params: SemanticTokensParams
     """Return the semantic tokens for the entire document"""
     data = []
     tokens = ls.tokens.get(params.text_document.uri, [])
-    ls.show_message_log(f"Returning semantic tokens Tokens: {tokens}")
+    ls.window_log_message(
+        LogMessageParams(
+            type=MessageType.Log, message=f"Returning semantic tokens Tokens: {tokens}"
+        )
+    )
     for token in tokens:
         data.extend(
             [
@@ -200,7 +223,9 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
     Using the ``data`` that was attached to the code lens item created in the function
     above, this prepares an invocation of the ``evaluateSum`` command below.
     """
-    ls.show_message_log("Resolving code lens: %s", item)
+    ls.window_log_message(
+        LogMessageParams(type=MessageType.Log, message=f"Resolving code lens: {item}")
+    )
     assert item.data is not None
     left = item.data["left"]
     right = item.data["right"]
@@ -226,17 +251,14 @@ def handle_config(ls: TrilogyLanguageServer, config):
     try:
         example_config = config[0].get("exampleConfiguration")
 
-        ls.show_message_log(
-            ShowMessageParams(
-                message=f"trilogy.exampleConfiguration value: {example_config}",
+        ls.window_log_message(
+            LogMessageParams(
                 type=MessageType.Info,
-            ),
+                message=f"trilogy.exampleConfiguration value: {example_config}",
+            )
         )
 
     except Exception as e:
-        ls.show_message_log(
-            LogMessageParams(
-                message=f"Error ocurred: {e}",
-                type=MessageType.Error,
-            ),
+        ls.window_log_message(
+            LogMessageParams(type=MessageType.Error, message=f"Error occurred: {e}")
         )

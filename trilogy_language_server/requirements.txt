@@ -1,4 +1,4 @@
-pygls
+pygls>=2.0.0
 pytrilogy>=0.0.3.130
 pytrilogy-nlp
 google-cloud-bigquery
