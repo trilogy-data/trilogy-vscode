@@ -1,11 +1,7 @@
 pygls>=2.0.0
 pytrilogy>=0.0.3.130
-pytrilogy-nlp
 google-cloud-bigquery
 sqlalchemy-bigquery
 duckdb
 duckdb-engine
 python-dotenv
-pytrilogy-nlp>=0.0.19
-langchain-openai
-langchain-community

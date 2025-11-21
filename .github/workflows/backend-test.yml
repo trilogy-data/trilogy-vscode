@@ -34,7 +34,7 @@ jobs:
         working-directory: ./trilogy_language_server
         run: |
           # stop the build if there are Python syntax errors or undefined names
-          mypy .
+          mypy . --explicit-package-bases
       - name: Lint with ruff
         working-directory: ./trilogy_language_server
         run: |
