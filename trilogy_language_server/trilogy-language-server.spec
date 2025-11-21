@@ -3,6 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 import sys
 from pathlib import Path
 from logging import getLogger
+import trilogy
 
 logger = getLogger(__name__)
 
