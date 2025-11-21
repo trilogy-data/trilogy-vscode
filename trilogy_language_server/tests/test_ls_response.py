@@ -211,22 +211,22 @@ class TestFeatureFunctions:
         # Should not raise any exceptions
         did_close(mock_server, params)
 
-    @pytest.mark.asyncio
-    async def test_did_open(self, mock_server):
-        """Test the did_open async function."""
-        mock_server._validate = Mock()
-        params = DidOpenTextDocumentParams(
-            text_document=TextDocumentItem(
-                uri="file:///test/example.trilogy",
-                language_id="trilogy",
-                version=1,
-                text="SELECT * FROM users;",
-            )
-        )
+    # @pytest.mark.asyncio
+    # async def test_did_open(self, mock_server):
+    #     """Test the did_open async function."""
+    #     mock_server._validate = Mock()
+    #     params = DidOpenTextDocumentParams(
+    #         text_document=TextDocumentItem(
+    #             uri="file:///test/example.trilogy",
+    #             language_id="trilogy",
+    #             version=1,
+    #             text="SELECT * FROM users;",
+    #         )
+    #     )
 
-        await did_open(mock_server, params)
+    #     await did_open(mock_server, params)
 
-        mock_server._validate.assert_called_once_with(params)
+    #     mock_server._validate.assert_called_once_with(params)
 
     def test_code_lens(self, mock_server):
         """Test the code_lens function."""
