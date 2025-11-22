@@ -13,7 +13,6 @@ from trilogy_language_server.server import (
     completions,
     did_change,
     did_close,
-    did_open,
     code_lens,
     code_lens_resolve,
     handle_config,
@@ -25,9 +24,7 @@ from trilogy_language_server.server import (
 )
 from lsprotocol.types import (
     DidChangeTextDocumentParams,
-    DidOpenTextDocumentParams,
     DidCloseTextDocumentParams,
-    TextDocumentItem,
     TextDocumentIdentifier,
     Position,
     Range,
