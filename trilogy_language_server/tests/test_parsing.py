@@ -66,3 +66,23 @@ def test_code_lense_tree():
         ),
         data={"idx": 1},
     ), str(comp[1].command)
+
+
+def test_root_datasource_parsing():
+    """Test that 'root datasource' syntax parses successfully without warnings"""
+    code_with_root_datasource = """key id int;
+
+root datasource test_source(
+    id
+)
+address test_table;
+
+SELECT id;
+"""
+    # This should parse successfully without raising an exception
+    tree = gen_tree(code_with_root_datasource)
+    assert tree is not None, "Parse tree should not be None"
+    
+    # Verify we can convert to symbols without errors
+    parsed = tree_to_symbols(code_with_root_datasource, tree)
+    assert len(parsed) > 0, "Should have parsed tokens"
