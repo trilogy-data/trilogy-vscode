@@ -2,7 +2,7 @@
 
 # Test 1: Verbose datasource assignment with modifiers
 datasource raw_launch_info (
-# <-----  storage.type.function.trilogy
+# <----  storage.type.function.trilogy
     Launch_Tag: launch_tag,
     LV_Type: ~vehicle.name,
 #            ^ keyword.operator.modifier.trilogy
@@ -14,10 +14,11 @@ datasource raw_launch_info (
 grain (launch_tag)
 # <--  keyword.control.trilogy
 file ingest_launch.py;
+# <-  keyword.control.trilogy
 
 # Test 2: Simple datasource assignment with modifiers (no field mapping)
 datasource launch_info (
-# <-----  storage.type.function.trilogy
+# <----  storage.type.function.trilogy
     launch_tag,
     ~vehicle.name,
 #   ^ keyword.operator.modifier.trilogy
@@ -38,10 +39,11 @@ file `gcs://trilogy_public_models/duckdb/launch_report/launch.parquet`
 freshness by data_updated_through;
 # <------  keyword.control.trilogy
 #         ^^ keyword.control.trilogy
-#            ^ variable.other.field.trilogy
+#            ^^^^^^^^^^^^^^^^^^^^ variable.other.field.trilogy
 
 # Test 3: Mixed verbose and simple assignments
 datasource mixed_example (
+# <----  storage.type.function.trilogy
     id: primary_id,
     ~nested.field,
 #   ^ keyword.operator.modifier.trilogy
@@ -51,4 +53,6 @@ datasource mixed_example (
 #   ^ keyword.operator.modifier.trilogy
     )
 grain (id)
+# <--  keyword.control.trilogy
 file example.csv;
+# <-  keyword.control.trilogy
