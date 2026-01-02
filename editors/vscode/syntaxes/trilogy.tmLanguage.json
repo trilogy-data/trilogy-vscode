@@ -206,7 +206,68 @@
 					"include": "#parameters"
 				},
 				{
+					"include": "#datasource-grain-clause"
+				},
+				{
+					"include": "#datasource-file-clause"
+				},
+				{
+					"include": "#datasource-freshness-clause"
+				},
+				{
 					"include": "#line-continuation"
+				}
+			]
+		},
+		"datasource-grain-clause": {
+			"comment": "Grain clause in datasource declaration",
+			"begin": "\\b(grain)\\b",
+			"end": "(?=file|freshness|;)",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.trilogy"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"datasource-file-clause": {
+			"comment": "File clause in datasource declaration",
+			"begin": "\\b(file)\\b",
+			"end": "(?=freshness|;)",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.trilogy"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#string"
+				},
+				{
+					"include": "#expression"
+				}
+			]
+		},
+		"datasource-freshness-clause": {
+			"comment": "Freshness by clause in datasource declaration",
+			"begin": "\\b(freshness)\\s+(by)\\b",
+			"end": "(?=;)",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.trilogy"
+				},
+				"2": {
+					"name": "keyword.control.trilogy"
+				}
+			},
+			"patterns": [
+				{
+					"name": "variable.other.field.trilogy",
+					"match": "\\b[[:alpha:]_][[:word:]]*\\b"
 				}
 			]
 		},
@@ -316,6 +377,9 @@
 					"include": "#illegal-names"
 				},
 				{
+					"include": "#parameter-with-modifier"
+				},
+				{
 					"match": "(?x)\n  ([[:alpha:]_]\\w*)\n    \\s* (?: (,) | (?=[)#\\n=]))\n",
 					"captures": {
 						"1": {
@@ -333,6 +397,21 @@
 					"include": "#annotated-parameter"
 				}
 			]
+		},
+		"parameter-with-modifier": {
+			"comment": "Simple parameter with optional modifier prefix (~, ?, or ~?)",
+			"match": "(?x)\n  (~\\?|~|\\?)\\s*\n  ([[:alpha:]_][[:word:]]*(?:\\.[[:alpha:]_][[:word:]]*)*)\n  \\s* (?: (,) | (?=[)#\\n]))\n",
+			"captures": {
+				"1": {
+					"name": "keyword.operator.modifier.trilogy"
+				},
+				"2": {
+					"name": "variable.parameter.function.language.trilogy"
+				},
+				"3": {
+					"name": "punctuation.separator.parameters.trilogy"
+				}
+			}
 		},
 		"annotated-parameter": {
 			"begin": "(?x)\n  \\b\n  ([[:alpha:]_]\\w*) \\s* (:)\n",
@@ -352,6 +431,9 @@
 			},
 			"patterns": [
 				{
+					"include": "#parameter-modifier"
+				},
+				{
 					"include": "#expression"
 				},
 				{
@@ -359,6 +441,11 @@
 					"match": "=(?!=)"
 				}
 			]
+		},
+		"parameter-modifier": {
+			"comment": "Modifiers for datasource parameters (~, ?, ~?)",
+			"name": "keyword.operator.modifier.trilogy",
+			"match": "~\\?|~|\\?"
 		},
 		"expression": {
 			"comment": "All valid trilogy expressions",
