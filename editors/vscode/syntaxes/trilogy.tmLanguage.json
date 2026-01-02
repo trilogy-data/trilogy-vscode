@@ -222,7 +222,7 @@
 		"datasource-grain-clause": {
 			"comment": "Grain clause in datasource declaration",
 			"begin": "\\b(grain)\\b",
-			"end": "(?=file|freshness|;)",
+			"end": "(?=\\b(?:file|freshness)\\b|;)",
 			"beginCaptures": {
 				"1": {
 					"name": "keyword.control.trilogy"
@@ -237,7 +237,7 @@
 		"datasource-file-clause": {
 			"comment": "File clause in datasource declaration",
 			"begin": "\\b(file)\\b",
-			"end": "(?=freshness|;)",
+			"end": "(?=\\bfreshness\\b|;)",
 			"beginCaptures": {
 				"1": {
 					"name": "keyword.control.trilogy"
