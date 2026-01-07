@@ -290,26 +290,39 @@ def extract_concepts_from_environment(
     Extract concept information from an Environment object.
 
     Returns a dictionary mapping concept address to ConceptInfo.
+    Uses env.user_concepts() to filter out internal concepts.
     """
     concepts: Dict[str, ConceptInfo] = {}
 
-    for address, concept in environment.concepts.items():
-        # Skip internal concepts
-        if concept.namespace == "__preql_internal":
-            continue
+    # Use user_concepts() if available (pytrilogy >= 0.3.156), otherwise filter manually
+    if hasattr(environment, "user_concepts"):
+        # user_concepts() returns a list of Concept objects
+        concept_list = environment.user_concepts()
+    else:
+        concept_list = [
+            c for c in environment.concepts.values()
+            if c.namespace != "__preql_internal"
+        ]
 
-        # Extract metadata
+    for concept in concept_list:
+        address = concept.address
+        # Extract metadata - now includes column positions (pytrilogy >= 0.3.156)
         line_number = None
+        column = None
+        end_line = None
+        end_column = None
         description = None
         concept_source = None
 
         if hasattr(concept, "metadata") and concept.metadata:
-            if hasattr(concept.metadata, "line_number"):
-                line_number = concept.metadata.line_number
-            if hasattr(concept.metadata, "description"):
-                description = concept.metadata.description
-            if hasattr(concept.metadata, "concept_source"):
-                concept_source = str(concept.metadata.concept_source.value) if concept.metadata.concept_source else None
+            meta = concept.metadata
+            line_number = getattr(meta, "line_number", None)
+            column = getattr(meta, "column", None)
+            end_line = getattr(meta, "end_line", None)
+            end_column = getattr(meta, "end_column", None)
+            description = getattr(meta, "description", None)
+            if hasattr(meta, "concept_source") and meta.concept_source:
+                concept_source = str(meta.concept_source.value)
 
         # Extract lineage for derived concepts
         lineage_str = None
@@ -338,6 +351,9 @@ def extract_concepts_from_environment(
             purpose=str(concept.purpose.value) if hasattr(concept.purpose, "value") else str(concept.purpose),
             namespace=concept.namespace,
             line_number=line_number,
+            column=column,
+            end_line=end_line,
+            end_column=end_column,
             description=description,
             lineage=lineage_str,
             keys=keys_set,

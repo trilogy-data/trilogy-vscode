@@ -29,6 +29,9 @@ class ConceptInfo(BaseModel):
     purpose: str  # KEY, PROPERTY, METRIC, CONSTANT, AUTO
     namespace: str
     line_number: Optional[int] = None
+    column: Optional[int] = None
+    end_line: Optional[int] = None
+    end_column: Optional[int] = None
     description: Optional[str] = None
     lineage: Optional[str] = None  # For derived concepts
     keys: Optional[Set[str]] = None  # For properties, the keys they depend on
