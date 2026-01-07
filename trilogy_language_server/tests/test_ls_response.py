@@ -16,12 +16,14 @@ from trilogy_language_server.server import (
     code_lens,
     code_lens_resolve,
     handle_config,
+    hover,
     TokenTypes,
     ADDITION,
     Token,
     TokenModifier,
     get_diagnostics,
 )
+from trilogy_language_server.models import ConceptInfo, ConceptLocation
 from lsprotocol.types import (
     DidChangeTextDocumentParams,
     DidCloseTextDocumentParams,
@@ -33,6 +35,7 @@ from lsprotocol.types import (
     CodeLens,
     DocumentFormattingParams,
     MessageType,
+    HoverParams,
 )
 
 TEST_TEXT = """select 1-> test;"""
@@ -264,6 +267,66 @@ class TestFeatureFunctions:
         args = mock_server.window_log_message.call_args[0][0]
         assert args.type == MessageType.Info
         assert "test_value" in args.message
+
+    def test_hover_with_concept(self, mock_server):
+        """Test the hover function with concept information."""
+        uri = "file:///test/example.trilogy"
+
+        # Setup concept locations
+        mock_server.concept_locations = {
+            uri: [
+                ConceptLocation(
+                    concept_address="local.user_id",
+                    start_line=1,
+                    start_column=5,
+                    end_line=1,
+                    end_column=12,
+                    is_definition=True,
+                )
+            ]
+        }
+
+        # Setup concept info
+        mock_server.concept_info = {
+            uri: {
+                "local.user_id": ConceptInfo(
+                    name="user_id",
+                    address="local.user_id",
+                    datatype="INTEGER",
+                    purpose="key",
+                    namespace="local",
+                    line_number=1,
+                )
+            }
+        }
+
+        params = HoverParams(
+            text_document=TextDocumentIdentifier(uri=uri),
+            position=Position(line=0, character=5),  # Position on user_id
+        )
+
+        result = hover(mock_server, params)
+
+        assert result is not None
+        assert "key" in result.contents.value
+        assert "user_id" in result.contents.value
+        assert "INTEGER" in result.contents.value
+
+    def test_hover_no_concept_at_position(self, mock_server):
+        """Test the hover function when no concept is at cursor position."""
+        uri = "file:///test/example.trilogy"
+
+        # Setup empty concept locations
+        mock_server.concept_locations = {uri: []}
+
+        params = HoverParams(
+            text_document=TextDocumentIdentifier(uri=uri),
+            position=Position(line=0, character=0),
+        )
+
+        result = hover(mock_server, params)
+
+        assert result is None
 
 
 class TestModuleConstants:
