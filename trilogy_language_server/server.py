@@ -28,14 +28,29 @@ from lsprotocol.types import (
     LogMessageParams,
     MessageType,
     PublishDiagnosticsParams,
+    TEXT_DOCUMENT_HOVER,
+    Hover,
+    HoverParams,
+    MarkupContent,
+    MarkupKind,
+    Range,
+    Position,
 )
 from functools import reduce
 from typing import Dict, List, Optional
 from trilogy_language_server.error_reporting import get_diagnostics
 import operator
 from lark import ParseTree
-from trilogy_language_server.models import TokenModifier, Token
-from trilogy_language_server.parsing import tree_to_symbols, code_lense_tree
+from trilogy_language_server.models import TokenModifier, Token, ConceptInfo, ConceptLocation
+from trilogy_language_server.parsing import (
+    tree_to_symbols,
+    code_lense_tree,
+    extract_concept_locations,
+    extract_concepts_from_environment,
+    find_concept_at_position,
+    format_concept_hover,
+    resolve_concept_address,
+)
 from trilogy.parsing.render import Renderer
 from trilogy.parsing.parse_engine import ParseToObjects, PARSER
 from trilogy.authoring import Environment
@@ -62,6 +77,9 @@ class TrilogyLanguageServer(LanguageServer):
         self.code_lens: Dict[str, List[CodeLens]] = {}
         self.environments: Dict[str, Environment] = {}
         self.dialect = DuckDBDialect()
+        # Storage for concept hover information
+        self.concept_locations: Dict[str, List[ConceptLocation]] = {}
+        self.concept_info: Dict[str, Dict[str, ConceptInfo]] = {}
 
     def _validate(
         self: "TrilogyLanguageServer",
@@ -78,11 +96,35 @@ class TrilogyLanguageServer(LanguageServer):
         if raw_tree:
             self.publish_tokens(text_doc.source, raw_tree, text_doc.uri)
             self.publish_code_lens(text_doc.source, raw_tree, text_doc.uri)
+            # Extract concept locations for hover support
+            self.publish_concept_locations(raw_tree, text_doc.uri)
 
     def publish_tokens(
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
     ):
         self.tokens[uri] = tree_to_symbols(original_text, raw_tree)
+
+    def publish_concept_locations(
+        self: "TrilogyLanguageServer", raw_tree: ParseTree, uri: str
+    ):
+        """Extract and store concept locations from the parse tree."""
+        try:
+            locations = extract_concept_locations(raw_tree)
+            self.concept_locations[uri] = locations
+            self.window_log_message(
+                LogMessageParams(
+                    type=MessageType.Log,
+                    message=f"Found {len(locations)} concept locations for hover support",
+                )
+            )
+        except Exception as e:
+            self.window_log_message(
+                LogMessageParams(
+                    type=MessageType.Warning,
+                    message=f"Failed to extract concept locations: {e}",
+                )
+            )
+            self.concept_locations[uri] = []
 
     def publish_code_lens(
         self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
@@ -103,6 +145,26 @@ class TrilogyLanguageServer(LanguageServer):
             dialect=self.dialect,
         )
         self.code_lens[uri] = lenses
+
+        # Extract concept information from the environment for hover support
+        try:
+            concept_info = extract_concepts_from_environment(environment)
+            self.concept_info[uri] = concept_info
+            self.window_log_message(
+                LogMessageParams(
+                    type=MessageType.Log,
+                    message=f"Extracted {len(concept_info)} concepts for hover support",
+                )
+            )
+        except Exception as e:
+            self.window_log_message(
+                LogMessageParams(
+                    type=MessageType.Warning,
+                    message=f"Failed to extract concept info: {e}",
+                )
+            )
+            self.concept_info[uri] = {}
+
         if lenses:
             self.window_show_message(
                 ShowMessageParams(
@@ -206,6 +268,87 @@ def semantic_tokens_full(ls: TrilogyLanguageServer, params: SemanticTokensParams
         )
 
     return SemanticTokens(data=data)
+
+
+@trilogy_server.feature(TEXT_DOCUMENT_HOVER)
+def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Optional[Hover]:
+    """Return hover information for the symbol at the given position."""
+    uri = params.text_document.uri
+    position = params.position
+
+    ls.window_log_message(
+        LogMessageParams(
+            type=MessageType.Log,
+            message=f"Hover requested at line {position.line}, col {position.character}",
+        )
+    )
+
+    # Get concept locations for this document
+    locations = ls.concept_locations.get(uri, [])
+    if not locations:
+        ls.window_log_message(
+            LogMessageParams(
+                type=MessageType.Log,
+                message="No concept locations available for hover",
+            )
+        )
+        return None
+
+    # Find if cursor is over a concept
+    location = find_concept_at_position(locations, position.line, position.character)
+    if not location:
+        return None
+
+    ls.window_log_message(
+        LogMessageParams(
+            type=MessageType.Log,
+            message=f"Found concept location: {location.concept_address}",
+        )
+    )
+
+    # Get concept information
+    concept_info_map = ls.concept_info.get(uri, {})
+
+    # Try to find the concept using the resolver
+    concept = resolve_concept_address(location.concept_address, concept_info_map)
+
+    if not concept:
+        # Return basic information even if we don't have full concept info
+        ls.window_log_message(
+            LogMessageParams(
+                type=MessageType.Log,
+                message=f"Concept info not found for {location.concept_address}, showing basic info",
+            )
+        )
+        hover_text = f"**Concept:** `{location.concept_address}`"
+        if location.is_definition:
+            hover_text += "\n\n*(definition)*"
+        return Hover(
+            contents=MarkupContent(kind=MarkupKind.Markdown, value=hover_text),
+            range=Range(
+                start=Position(
+                    line=location.start_line - 1, character=location.start_column - 1
+                ),
+                end=Position(
+                    line=location.end_line - 1, character=location.end_column - 1
+                ),
+            ),
+        )
+
+    # Format the hover content
+    hover_text = format_concept_hover(concept, is_definition=location.is_definition)
+
+    return Hover(
+        contents=MarkupContent(kind=MarkupKind.Markdown, value=hover_text),
+        range=Range(
+            start=Position(
+                line=location.start_line - 1, character=location.start_column - 1
+            ),
+            end=Position(
+                line=location.end_line - 1, character=location.end_column - 1
+            ),
+        ),
+    )
 
 
 @trilogy_server.feature(TEXT_DOCUMENT_CODE_LENS)

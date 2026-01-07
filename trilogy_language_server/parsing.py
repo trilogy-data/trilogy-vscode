@@ -1,7 +1,7 @@
-from trilogy_language_server.models import Token, TokenModifier
+from trilogy_language_server.models import Token, TokenModifier, ConceptInfo, ConceptLocation
 from trilogy.parsing.parse_engine import PARSER
 from lark import ParseTree, Token as LarkToken
-from typing import List, Union
+from typing import List, Union, Dict, Optional
 from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.parsing.parse_engine import ParseToObjects as ParseToObjects
 from trilogy.core.statements.author import (
@@ -181,3 +181,306 @@ def code_lense_tree(
         except Exception:
             pass
     return tokens
+
+
+# Node types that contain concept definitions
+CONCEPT_DEFINITION_NODES = {
+    "concept_declaration",
+    "concept_property_declaration",
+    "concept_derivation",
+}
+
+# Node types that contain concept references
+CONCEPT_REFERENCE_NODES = {
+    "concept_lit",
+    "concept_assignment",
+}
+
+
+def extract_concept_locations(
+    tree: ParseTree, default_namespace: str = "local"
+) -> List[ConceptLocation]:
+    """
+    Extract all concept definition and reference locations from the parse tree.
+
+    Returns a list of ConceptLocation objects that map positions to concept addresses.
+
+    Handles:
+    - Local concepts: 'user_id' -> 'local.user_id'
+    - Imported concepts: 'b.user_id' -> 'b.user_id' (namespace already in identifier)
+    - Property references: 'user_id.name' -> stored as-is for resolution
+    """
+    locations: List[ConceptLocation] = []
+
+    def walk_tree(node: Union[ParseTree, LarkToken], in_definition: bool = False, parent_data: Optional[str] = None):
+        if isinstance(node, LarkToken):
+            # We found a token - check if it's an identifier in a relevant context
+            if node.type == "IDENTIFIER" and parent_data in (
+                CONCEPT_DEFINITION_NODES | CONCEPT_REFERENCE_NODES | {"grain_clause", "column_list"}
+            ):
+                # Determine if this is a definition or reference
+                is_def = parent_data in CONCEPT_DEFINITION_NODES
+
+                # Build the concept address
+                identifier = str(node)
+
+                # Check if identifier already has a namespace prefix (e.g., 'b.user_id' from import)
+                # For definitions, always use default namespace
+                # For references, check if it looks like it has a namespace
+                parts = identifier.split(".")
+                if is_def or len(parts) == 1:
+                    # Local definition or simple reference
+                    concept_address = f"{default_namespace}.{identifier}"
+                else:
+                    # Could be imported (b.user_id) or property ref (user_id.name)
+                    # Store as-is, resolve_concept_address will handle lookup
+                    concept_address = identifier
+
+                locations.append(
+                    ConceptLocation(
+                        concept_address=concept_address,
+                        start_line=node.line or 1,
+                        start_column=node.column or 1,
+                        end_line=node.end_line or node.line or 1,
+                        end_column=node.end_column or (node.column or 1) + len(identifier),
+                        is_definition=is_def,
+                    )
+                )
+        else:
+            # It's a ParseTree node
+            current_data = getattr(node, "data", None)
+            is_def_context = current_data in CONCEPT_DEFINITION_NODES
+
+            for child in node.children:
+                walk_tree(child, is_def_context, current_data)
+
+    walk_tree(tree)
+    return locations
+
+
+def resolve_concept_address(
+    location_address: str, concept_info_map: Dict[str, ConceptInfo]
+) -> Optional[ConceptInfo]:
+    """
+    Resolve a concept address from a location to actual concept info.
+
+    Handles cases where:
+    - Direct match: 'local.user_id' or 'b.user_id' (imported)
+    - Property reference: 'local.user_id.name' -> 'local.name'
+    - Property reference (imported): 'b.user_id.name' -> 'b.name'
+    - Auto-derived: 'local.user_id.count'
+    - Qualified reference without 'local': 'user_id.name' -> try 'local.name'
+    """
+    # Try direct match first
+    if location_address in concept_info_map:
+        return concept_info_map[location_address]
+
+    # Parse the address
+    parts = location_address.split(".")
+    if len(parts) < 2:
+        return None
+
+    # Determine namespace - first part might be namespace or concept name
+    # Check if first part matches any known namespace in the concept map
+    potential_namespace = parts[0]
+    has_known_namespace = any(
+        addr.startswith(f"{potential_namespace}.") for addr in concept_info_map
+    )
+
+    if has_known_namespace:
+        namespace = potential_namespace
+        concept_parts = parts[1:]
+    else:
+        # No known namespace prefix, assume 'local'
+        namespace = "local"
+        concept_parts = parts
+
+    # Try with namespace prefix
+    full_address = f"{namespace}.{'.'.join(concept_parts)}"
+    if full_address in concept_info_map:
+        return concept_info_map[full_address]
+
+    # For property references (namespace.parent.property -> namespace.property)
+    if len(concept_parts) >= 2:
+        # Try: namespace.last_part (e.g., local.name from user_id.name)
+        simple_address = f"{namespace}.{concept_parts[-1]}"
+        if simple_address in concept_info_map:
+            return concept_info_map[simple_address]
+
+        # Try compound (auto-derived like user_id.count)
+        compound_address = f"{namespace}.{'.'.join(concept_parts)}"
+        if compound_address in concept_info_map:
+            return concept_info_map[compound_address]
+
+    return None
+
+
+def extract_concepts_from_environment(
+    environment: Environment,
+) -> Dict[str, ConceptInfo]:
+    """
+    Extract concept information from an Environment object.
+
+    Returns a dictionary mapping concept address to ConceptInfo.
+    Uses env.user_concepts() to filter out internal concepts.
+    """
+    concepts: Dict[str, ConceptInfo] = {}
+
+    # Use user_concepts() if available (pytrilogy >= 0.3.156), otherwise filter manually
+    if hasattr(environment, "user_concepts"):
+        # user_concepts() returns a list of Concept objects
+        concept_list = environment.user_concepts()
+    else:
+        concept_list = [
+            c for c in environment.concepts.values()
+            if c.namespace != "__preql_internal"
+        ]
+
+    for concept in concept_list:
+        address = concept.address
+        # Extract metadata - now includes column positions (pytrilogy >= 0.3.156)
+        line_number = None
+        column = None
+        end_line = None
+        end_column = None
+        description = None
+        concept_source = None
+
+        if hasattr(concept, "metadata") and concept.metadata:
+            meta = concept.metadata
+            line_number = getattr(meta, "line_number", None)
+            column = getattr(meta, "column", None)
+            end_line = getattr(meta, "end_line", None)
+            end_column = getattr(meta, "end_column", None)
+            description = getattr(meta, "description", None)
+            if hasattr(meta, "concept_source") and meta.concept_source:
+                concept_source = str(meta.concept_source.value)
+
+        # Extract lineage for derived concepts
+        lineage_str = None
+        if hasattr(concept, "lineage") and concept.lineage:
+            lineage_str = str(concept.lineage)
+
+        # Extract keys for properties
+        keys_set = None
+        if hasattr(concept, "keys") and concept.keys:
+            keys_set = concept.keys
+
+        # Extract modifiers
+        modifiers_list = []
+        if hasattr(concept, "modifiers") and concept.modifiers:
+            modifiers_list = [str(m) for m in concept.modifiers]
+
+        # Extract derivation
+        derivation_str = None
+        if hasattr(concept, "derivation") and concept.derivation:
+            derivation_str = str(concept.derivation.value) if hasattr(concept.derivation, "value") else str(concept.derivation)
+
+        concepts[address] = ConceptInfo(
+            name=concept.name,
+            address=address,
+            datatype=str(concept.datatype),
+            purpose=str(concept.purpose.value) if hasattr(concept.purpose, "value") else str(concept.purpose),
+            namespace=concept.namespace,
+            line_number=line_number,
+            column=column,
+            end_line=end_line,
+            end_column=end_column,
+            description=description,
+            lineage=lineage_str,
+            keys=keys_set,
+            modifiers=modifiers_list,
+            derivation=derivation_str,
+            concept_source=concept_source,
+        )
+
+    return concepts
+
+
+def find_concept_at_position(
+    locations: List[ConceptLocation],
+    line: int,
+    column: int,
+) -> Optional[ConceptLocation]:
+    """
+    Find the concept location that contains the given position.
+
+    Line and column are 0-indexed (LSP convention).
+    Locations use 1-indexed positions (Lark convention).
+    """
+    # Convert to 1-indexed for comparison with Lark tokens
+    line_1idx = line + 1
+    col_1idx = column + 1
+
+    for loc in locations:
+        # Check if position is within this location
+        if loc.start_line <= line_1idx <= loc.end_line:
+            if loc.start_line == loc.end_line:
+                # Single line - check column
+                if loc.start_column <= col_1idx <= loc.end_column:
+                    return loc
+            else:
+                # Multi-line
+                if line_1idx == loc.start_line and col_1idx >= loc.start_column:
+                    return loc
+                elif line_1idx == loc.end_line and col_1idx <= loc.end_column:
+                    return loc
+                elif loc.start_line < line_1idx < loc.end_line:
+                    return loc
+
+    return None
+
+
+def format_concept_hover(concept: ConceptInfo, is_definition: bool = False) -> str:
+    """
+    Format concept information as markdown for hover display.
+    """
+    lines = []
+
+    # Header with purpose and type
+    lines.append(f"**{concept.purpose}** `{concept.name}`: `{concept.datatype}`")
+    lines.append("")
+
+    # Description if available
+    if concept.description:
+        lines.append(concept.description)
+        lines.append("")
+
+    # Details section
+    details = []
+
+    if concept.namespace and concept.namespace != "local":
+        details.append(f"**Namespace:** `{concept.namespace}`")
+
+    if concept.keys:
+        keys_str = ", ".join(f"`{k}`" for k in concept.keys)
+        details.append(f"**Keys:** {keys_str}")
+
+    if concept.lineage:
+        # Clean up lineage display
+        lineage_display = concept.lineage
+        if len(lineage_display) > 100:
+            lineage_display = lineage_display[:97] + "..."
+        details.append(f"**Derivation:** `{lineage_display}`")
+
+    if concept.modifiers:
+        mods_str = ", ".join(concept.modifiers)
+        details.append(f"**Modifiers:** {mods_str}")
+
+    if concept.line_number:
+        if is_definition:
+            details.append(f"**Defined on line:** {concept.line_number}")
+        else:
+            details.append(f"**Definition:** line {concept.line_number}")
+
+    if concept.concept_source and concept.concept_source != "manual":
+        details.append(f"**Source:** {concept.concept_source}")
+
+    if details:
+        lines.extend(details)
+
+    # Full address
+    lines.append("")
+    lines.append(f"*Full address: `{concept.address}`*")
+
+    return "\n".join(lines)
