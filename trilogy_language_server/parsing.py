@@ -1,7 +1,7 @@
 from trilogy_language_server.models import Token, TokenModifier, ConceptInfo, ConceptLocation
 from trilogy.parsing.parse_engine import PARSER
 from lark import ParseTree, Token as LarkToken
-from typing import List, Union, Dict, Tuple, Optional
+from typing import List, Union, Dict, Optional
 from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.parsing.parse_engine import ParseToObjects as ParseToObjects
 from trilogy.core.statements.author import (
@@ -406,14 +406,6 @@ def format_concept_hover(concept: ConceptInfo, is_definition: bool = False) -> s
     lines = []
 
     # Header with purpose and type
-    purpose_icon = {
-        "key": "🔑",
-        "property": "📋",
-        "metric": "📊",
-        "constant": "📌",
-        "auto": "⚡",
-    }.get(concept.purpose.lower(), "•")
-
     lines.append(f"**{concept.purpose}** `{concept.name}`: `{concept.datatype}`")
     lines.append("")
 

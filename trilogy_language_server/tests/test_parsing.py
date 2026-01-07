@@ -1,4 +1,4 @@
-from trilogy_language_server.models import Token, TokenModifier, ConceptInfo, ConceptLocation
+from trilogy_language_server.models import Token, TokenModifier, ConceptInfo
 from trilogy_language_server.parsing import (
     tree_to_symbols,
     gen_tree,
