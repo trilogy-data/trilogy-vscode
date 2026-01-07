@@ -198,16 +198,17 @@ CONCEPT_REFERENCE_NODES = {
 
 
 def extract_concept_locations(
-    tree: ParseTree, namespace: str = "local"
+    tree: ParseTree, default_namespace: str = "local"
 ) -> List[ConceptLocation]:
     """
     Extract all concept definition and reference locations from the parse tree.
 
     Returns a list of ConceptLocation objects that map positions to concept addresses.
 
-    Note: For property references like 'user_id.name', we store both the full
-    reference form (local.user_id.name) and an alternate_address for looking up
-    the actual concept in the environment (local.name).
+    Handles:
+    - Local concepts: 'user_id' -> 'local.user_id'
+    - Imported concepts: 'b.user_id' -> 'b.user_id' (namespace already in identifier)
+    - Property references: 'user_id.name' -> stored as-is for resolution
     """
     locations: List[ConceptLocation] = []
 
@@ -222,7 +223,18 @@ def extract_concept_locations(
 
                 # Build the concept address
                 identifier = str(node)
-                concept_address = f"{namespace}.{identifier}"
+
+                # Check if identifier already has a namespace prefix (e.g., 'b.user_id' from import)
+                # For definitions, always use default namespace
+                # For references, check if it looks like it has a namespace
+                parts = identifier.split(".")
+                if is_def or len(parts) == 1:
+                    # Local definition or simple reference
+                    concept_address = f"{default_namespace}.{identifier}"
+                else:
+                    # Could be imported (b.user_id) or property ref (user_id.name)
+                    # Store as-is, resolve_concept_address will handle lookup
+                    concept_address = identifier
 
                 locations.append(
                     ConceptLocation(
@@ -253,9 +265,11 @@ def resolve_concept_address(
     Resolve a concept address from a location to actual concept info.
 
     Handles cases where:
-    - Address matches directly (e.g., 'local.user_id')
-    - Property reference like 'local.user_id.name' maps to 'local.name'
-    - Auto-derived concepts like 'local.user_id.count'
+    - Direct match: 'local.user_id' or 'b.user_id' (imported)
+    - Property reference: 'local.user_id.name' -> 'local.name'
+    - Property reference (imported): 'b.user_id.name' -> 'b.name'
+    - Auto-derived: 'local.user_id.count'
+    - Qualified reference without 'local': 'user_id.name' -> try 'local.name'
     """
     # Try direct match first
     if location_address in concept_info_map:
@@ -266,17 +280,35 @@ def resolve_concept_address(
     if len(parts) < 2:
         return None
 
-    namespace = parts[0]
+    # Determine namespace - first part might be namespace or concept name
+    # Check if first part matches any known namespace in the concept map
+    potential_namespace = parts[0]
+    has_known_namespace = any(
+        addr.startswith(f"{potential_namespace}.") for addr in concept_info_map
+    )
 
-    # Try looking up just the last part (for properties like user_id.name -> name)
-    if len(parts) >= 3:
-        # Try: local.name (last part only)
-        simple_address = f"{namespace}.{parts[-1]}"
+    if has_known_namespace:
+        namespace = potential_namespace
+        concept_parts = parts[1:]
+    else:
+        # No known namespace prefix, assume 'local'
+        namespace = "local"
+        concept_parts = parts
+
+    # Try with namespace prefix
+    full_address = f"{namespace}.{'.'.join(concept_parts)}"
+    if full_address in concept_info_map:
+        return concept_info_map[full_address]
+
+    # For property references (namespace.parent.property -> namespace.property)
+    if len(concept_parts) >= 2:
+        # Try: namespace.last_part (e.g., local.name from user_id.name)
+        simple_address = f"{namespace}.{concept_parts[-1]}"
         if simple_address in concept_info_map:
             return concept_info_map[simple_address]
 
-        # Try: local.parent.name (auto-derived like user_id.count)
-        compound_address = f"{namespace}.{'.'.join(parts[1:])}"
+        # Try compound (auto-derived like user_id.count)
+        compound_address = f"{namespace}.{'.'.join(concept_parts)}"
         if compound_address in concept_info_map:
             return concept_info_map[compound_address]
 

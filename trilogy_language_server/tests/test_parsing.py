@@ -117,13 +117,26 @@ select user_id;
     assert locations[0].is_definition is True
     assert locations[0].start_line == 1
 
-    # Second should be user_id.name definition
+    # Second should be user_id.name definition (definitions always get local prefix)
     assert locations[1].concept_address == "local.user_id.name"
     assert locations[1].is_definition is True
 
     # Third should be user_id reference in select
     assert locations[2].concept_address == "local.user_id"
     assert locations[2].is_definition is False
+
+
+def test_extract_concept_locations_with_qualified_refs():
+    """Test that qualified references (like b.user_id) are handled correctly"""
+    code = """select user_id.name;
+"""
+    tree = gen_tree(code)
+    locations = extract_concept_locations(tree)
+
+    # Qualified reference should not get local. prefix added
+    assert len(locations) == 1
+    assert locations[0].concept_address == "user_id.name"
+    assert locations[0].is_definition is False
 
 
 def test_extract_concepts_from_environment():
@@ -204,6 +217,12 @@ property user_id.name string;
 
     # Property reference (local.user_id.name -> local.name)
     concept = resolve_concept_address("local.user_id.name", concept_info)
+    assert concept is not None
+    assert concept.name == "name"
+    assert concept.purpose == "property"
+
+    # Qualified reference without namespace (user_id.name -> local.name)
+    concept = resolve_concept_address("user_id.name", concept_info)
     assert concept is not None
     assert concept.name == "name"
     assert concept.purpose == "property"
