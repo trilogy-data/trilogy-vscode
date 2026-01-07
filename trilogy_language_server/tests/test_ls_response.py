@@ -310,3 +310,133 @@ class TestIntegration:
         server.window_show_message = Mock()
         server.text_document_publish_diagnostics = Mock()
         return server
+
+
+class TestNestedImportFormatting:
+    """Test cases for formatting files with imports in nested folders."""
+
+    @pytest.fixture
+    def mock_server(self):
+        """Create a mock server for testing."""
+        server = Mock(spec=TrilogyLanguageServer)
+        server.workspace = Mock()
+        server.window_log_message = Mock()
+        return server
+
+    @pytest.fixture
+    def nested_fixtures_path(self):
+        """Return the path to the nested test fixtures."""
+        return Path(__file__).parent / "fixtures" / "nested"
+
+    def test_format_document_with_nested_import(self, mock_server, nested_fixtures_path):
+        """Test that formatting works for files with imports in nested folders.
+
+        This tests the fix for imports being resolved relative to the file
+        containing the import statement, not the repo root.
+        """
+        # Read the actual fixture file content
+        main_file = nested_fixtures_path / "main.preql"
+        main_content = main_file.read_text()
+
+        # Setup mock document with nested file content
+        mock_document = Mock()
+        mock_document.source = main_content
+        mock_server.workspace.get_text_document.return_value = mock_document
+
+        # Create a file URI that points to the nested directory
+        file_uri = f"file://{main_file}"
+
+        params = DocumentFormattingParams(
+            text_document=TextDocumentIdentifier(uri=file_uri),
+            options=Mock(),
+        )
+
+        # Execute - this should NOT raise an error because the working_path
+        # is now correctly set to the nested directory where base.preql exists
+        result = format_document(mock_server, params)
+
+        # Verify formatting succeeded and contains the import statement
+        assert result is not None
+        assert "import base as base" in result
+        assert "base.x" in result
+
+    def test_format_document_with_nested_import_resolves_correctly(
+        self, mock_server, nested_fixtures_path
+    ):
+        """Test that imports are resolved relative to the document's directory.
+
+        This verifies that when formatting a file in a nested folder, imports
+        are resolved relative to that folder, not the repo root.
+        """
+        main_file = nested_fixtures_path / "main.preql"
+        main_content = main_file.read_text()
+
+        mock_document = Mock()
+        mock_document.source = main_content
+        mock_server.workspace.get_text_document.return_value = mock_document
+
+        file_uri = f"file://{main_file}"
+
+        params = DocumentFormattingParams(
+            text_document=TextDocumentIdentifier(uri=file_uri),
+            options=Mock(),
+        )
+
+        # This should succeed because base.preql is in the same directory
+        result = format_document(mock_server, params)
+
+        # The formatted result should include the import and the selection
+        assert "import" in result
+        assert "SELECT" in result
+
+    def test_format_document_with_invalid_uri_handles_gracefully(self, mock_server):
+        """Test that format_document handles non-file URIs gracefully.
+
+        When the URI cannot be converted to a filesystem path, the environment
+        should be created with working_path=None, which will use the default behavior.
+        """
+        mock_document = Mock()
+        mock_document.source = "SELECT 1 -> test;"
+        mock_server.workspace.get_text_document.return_value = mock_document
+
+        # Use a non-file URI scheme
+        params = DocumentFormattingParams(
+            text_document=TextDocumentIdentifier(uri="untitled:Untitled-1"),
+            options=Mock(),
+        )
+
+        # This should not raise an error
+        result = format_document(mock_server, params)
+
+        # Basic formatting should still work
+        assert result is not None
+        assert "SELECT" in result
+
+    def test_format_document_preserves_import_when_wrong_working_path(self, mock_server):
+        """Test that demonstrates the fix for nested imports.
+
+        Prior to the fix, imports would fail to resolve because the working_path
+        was not set from the document's directory. This test verifies the fix.
+        """
+        # Content with an import that requires correct working path
+        content = "import base as base;\nselect base.x;"
+
+        mock_document = Mock()
+        mock_document.source = content
+        mock_server.workspace.get_text_document.return_value = mock_document
+
+        # Use the actual nested fixtures path
+        nested_path = Path(__file__).parent / "fixtures" / "nested" / "main.preql"
+        file_uri = f"file://{nested_path}"
+
+        params = DocumentFormattingParams(
+            text_document=TextDocumentIdentifier(uri=file_uri),
+            options=Mock(),
+        )
+
+        # With the fix, this should resolve the import correctly
+        result = format_document(mock_server, params)
+
+        assert result is not None
+        # The formatted output should contain the import
+        assert "import base as base" in result

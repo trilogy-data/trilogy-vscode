@@ -123,8 +123,18 @@ def format_document(ls: LanguageServer, params: DocumentFormattingParams):
     )
 
     doc = ls.workspace.get_text_document(params.text_document.uri)
+
+    # Extract working path from document URI for proper import resolution
+    # Imports are relative to the file containing the import statement
+    fs_path_str = to_fs_path(params.text_document.uri)
+    if fs_path_str:
+        working_path = Path(fs_path_str).parent
+        env = Environment(working_path=working_path)
+    else:
+        # For non-file URIs (e.g., untitled:), use default Environment
+        env = Environment()
+
     r = Renderer()
-    env = Environment()
     parser = ParseToObjects(environment=env)
     parser.set_text(doc.source)
     parser.prepare_parse()
