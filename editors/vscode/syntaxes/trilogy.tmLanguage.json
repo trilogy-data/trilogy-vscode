@@ -200,12 +200,6 @@
 			},
 			"patterns": [
 				{
-					"include": "#function-def-name"
-				},
-				{
-					"include": "#parameters"
-				},
-				{
 					"include": "#datasource-grain-clause"
 				},
 				{
@@ -213,6 +207,12 @@
 				},
 				{
 					"include": "#datasource-freshness-clause"
+				},
+				{
+					"include": "#function-def-name"
+				},
+				{
+					"include": "#parameters"
 				},
 				{
 					"include": "#line-continuation"
