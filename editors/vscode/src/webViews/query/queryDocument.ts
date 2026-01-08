@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { Disposable } from '../dispose';
-
 import { Database, TableData } from "duckdb";
 import { ColumnDescription, IMessage } from './common';
-
-
+import { TrilogyConfigService } from '../../trilogyConfigService';
 
 export class QueryDocument extends Disposable implements vscode.CustomDocument {
 
@@ -21,22 +20,66 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
 
     private readonly _uri: vscode.Uri;
     private _db: any;
+    private _configService: TrilogyConfigService;
+    private _setupCompleted: boolean = false;
 
     private constructor(uri: vscode.Uri) {
         super();
         this._uri = uri;
-        // this._db = null;
-        // Database.create(":memory:").then((db) => {
-        //     this._db = db 
-        // });
-
-        const config = vscode.workspace.getConfiguration('trilogy');
+        this._configService = TrilogyConfigService.getInstance();
     }
+
     private async init() {
         this._db = new Database(':memory:');
+        await this.runSetupScripts();
     }
+
+    private async runSetupScripts(): Promise<void> {
+        const activeConfig = this._configService.activeConfig;
+        if (!activeConfig || !activeConfig.setupFiles || activeConfig.setupFiles.length === 0) {
+            this._setupCompleted = true;
+            return;
+        }
+
+        // Get the directory of the trilogy.toml file
+        const configDir = path.dirname(activeConfig.path);
+
+        for (const setupFile of activeConfig.setupFiles) {
+            try {
+                const setupPath = path.isAbsolute(setupFile)
+                    ? setupFile
+                    : path.join(configDir, setupFile);
+
+                const fileUri = vscode.Uri.file(setupPath);
+                const content = await vscode.workspace.fs.readFile(fileUri);
+                const sql = new TextDecoder('utf-8').decode(content);
+
+                // Execute the setup SQL
+                await new Promise<void>((resolve, reject) => {
+                    this._db.exec(sql, (err: Error | null) => {
+                        if (err) {
+                            console.error(`Error running setup script ${setupFile}:`, err);
+                            // Continue with other scripts even if one fails
+                            resolve();
+                        } else {
+                            console.log(`Successfully ran setup script: ${setupFile}`);
+                            resolve();
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error(`Failed to read setup script ${setupFile}:`, error);
+            }
+        }
+
+        this._setupCompleted = true;
+    }
+
     public get uri() { return this._uri; }
     public get db() { return this._db; }
+    public get dialect(): string {
+        return this._configService.getActiveDialect();
+    }
 
     private readonly _onDidDispose = this._register(new vscode.EventEmitter<void>());
     /**
