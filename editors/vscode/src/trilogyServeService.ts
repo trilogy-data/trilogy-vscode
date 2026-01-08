@@ -208,7 +208,7 @@ export class TrilogyServeService {
       if (action === 'Show Installation Instructions') {
         vscode.env.openExternal(vscode.Uri.parse('https://github.com/trilogy-data/pytrilogy#installation'));
       }
-      throw new Error('Trilogy CLI not found. Install with: pip install pytrilogy');
+      throw new Error('Trilogy CLI not found. Install with: pip/uv install pytrilogy');
     }
     return 'trilogy';
   }
