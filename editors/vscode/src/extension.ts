@@ -13,6 +13,7 @@ import QueryPanel from './webViews/query/queryPanel';
 import RenderPanel from './webViews/render/renderPanel';
 import * as vscode from 'vscode';
 import { ConfigViewProvider } from "./webViews/config/config-view-provider";
+import { TrilogyConfigService } from "./trilogyConfigService";
 import * as os from 'os';
 import { spawn, ChildProcess } from 'child_process';
 const isWindows = os.platform() === 'win32';
@@ -107,6 +108,10 @@ function registerUI(context: ExtensionContext) {
 }
 
 export function activate(context: ExtensionContext): LanguageClient {
+	// Initialize the Trilogy config service
+	const configService = TrilogyConfigService.getInstance();
+	configService.initialize(context);
+
 	registerUI(context);
 	if (isStartedInDebugMode()) {
 		// Development - Run the server manually
