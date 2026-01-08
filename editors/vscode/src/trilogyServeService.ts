@@ -197,8 +197,28 @@ export class TrilogyServeService {
   }
 
   private async findTrilogyCommand(): Promise<string> {
-    // First try 'trilogy' directly (assumes it's in PATH)
+    // Check if trilogy is available in PATH
+    const isAvailable = await this.checkTrilogyAvailable();
+    if (!isAvailable) {
+      const action = await vscode.window.showErrorMessage(
+        'Trilogy CLI not found. Please install it to use the serve feature.',
+        'Show Installation Instructions',
+        'Cancel'
+      );
+      if (action === 'Show Installation Instructions') {
+        vscode.env.openExternal(vscode.Uri.parse('https://github.com/trilogy-data/pytrilogy#installation'));
+      }
+      throw new Error('Trilogy CLI not found. Install with: pip install pytrilogy');
+    }
     return 'trilogy';
+  }
+
+  private async checkTrilogyAvailable(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const checkProcess = spawn('trilogy', ['--version'], { shell: true });
+      checkProcess.on('error', () => resolve(false));
+      checkProcess.on('close', (code) => resolve(code === 0));
+    });
   }
 
   public dispose(): void {
