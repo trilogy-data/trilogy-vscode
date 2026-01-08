@@ -15,7 +15,9 @@
 	"activationEvents": [
 		"onLanguage:trilogy",
 		"onCommand:trilogy.runQuery",
-		"onCommand:trilogy.renderQuery"
+		"onCommand:trilogy.renderQuery",
+		"onCommand:trilogy.serveFolder",
+		"onCommand:trilogy.stopServe"
 	],
 	"contributes": {
 		"viewsContainers": {
@@ -58,6 +60,16 @@
 			{
 				"command": "trilogy.renderQuery",
 				"title": "Render SQL",
+				"category": "Trilogy"
+			},
+			{
+				"command": "trilogy.serveFolder",
+				"title": "Serve Folder",
+				"category": "Trilogy"
+			},
+			{
+				"command": "trilogy.stopServe",
+				"title": "Stop Serve",
 				"category": "Trilogy"
 			}
 		],

@@ -14,11 +14,13 @@ import RenderPanel from './webViews/render/renderPanel';
 import * as vscode from 'vscode';
 import { ConfigViewProvider } from "./webViews/config/config-view-provider";
 import { TrilogyConfigService } from "./trilogyConfigService";
+import { TrilogyServeService } from "./trilogyServeService";
 import * as os from 'os';
 import { spawn, ChildProcess } from 'child_process';
 const isWindows = os.platform() === 'win32';
 
 let client: LanguageClient;
+let serveService: TrilogyServeService;
 
 function getClientOptions(): LanguageClientOptions {
 	return {
@@ -68,6 +70,8 @@ function startLangServer(command: string, args: string[], cwd: string): Language
 
 
 function registerUI(context: ExtensionContext) {
+	const serveService = TrilogyServeService.getInstance();
+
 	context.subscriptions.push(
 		vscode.commands.registerCommand('trilogy.runQuery', (command) => {
 			QueryPanel.createOrShow(context.extensionUri).then((panel) => {
@@ -82,6 +86,12 @@ function registerUI(context: ExtensionContext) {
 				});
 			});
 
+		}),
+		vscode.commands.registerCommand('trilogy.serveFolder', async () => {
+			await serveService.selectAndServeFolder();
+		}),
+		vscode.commands.registerCommand('trilogy.stopServe', async () => {
+			await serveService.stopServe();
 		})
 	);
 
@@ -111,6 +121,9 @@ export function activate(context: ExtensionContext): LanguageClient {
 	// Initialize the Trilogy config service
 	const configService = TrilogyConfigService.getInstance();
 	configService.initialize(context);
+
+	// Initialize the Trilogy serve service
+	serveService = TrilogyServeService.getInstance();
 
 	registerUI(context);
 	if (isStartedInDebugMode()) {
@@ -158,6 +171,10 @@ export function activate(context: ExtensionContext): LanguageClient {
 }
 
 export function deactivate(): Thenable<void> {
+	// Stop the serve process when the extension is deactivated
+	if (serveService) {
+		serveService.dispose();
+	}
 	return client ? client.stop() : Promise.resolve();
 }
 
