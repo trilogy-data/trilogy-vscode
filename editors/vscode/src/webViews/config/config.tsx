@@ -9,6 +9,13 @@ interface TrilogyConfig {
   setupFiles?: string[];
 }
 
+interface ServeStatus {
+  isRunning: boolean;
+  folderPath: string | null;
+  url: string | null;
+  error: string | null;
+}
+
 interface VsCodeApi {
   postMessage(message: unknown): void;
 }
@@ -76,6 +83,12 @@ function ConfigItem({
 function App() {
   const [configs, setConfigs] = useState<TrilogyConfig[]>([]);
   const [activeConfigPath, setActiveConfigPath] = useState<string | null>(null);
+  const [serveStatus, setServeStatus] = useState<ServeStatus>({
+    isRunning: false,
+    folderPath: null,
+    url: null,
+    error: null
+  });
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -84,6 +97,9 @@ function App() {
         case "updateConfigs":
           setConfigs(message.configs || []);
           setActiveConfigPath(message.activeConfigPath);
+          break;
+        case "updateServeStatus":
+          setServeStatus(message.serveStatus);
           break;
       }
     };
@@ -106,6 +122,18 @@ function App() {
 
   const handleOpenConfig = (config: TrilogyConfig) => {
     vscode.postMessage({ type: "openConfigFile", path: config.path });
+  };
+
+  const handleStartServe = () => {
+    vscode.postMessage({ type: "startServe" });
+  };
+
+  const handleStopServe = () => {
+    vscode.postMessage({ type: "stopServe" });
+  };
+
+  const handleOpenServeUrl = () => {
+    vscode.postMessage({ type: "openServeUrl" });
   };
 
   const activeConfig = configs.find((c) => c.path === activeConfigPath);
@@ -188,6 +216,58 @@ function App() {
                     onOpen={() => handleOpenConfig(config)}
                   />
                 ))
+              )}
+            </div>
+          </div>
+
+          <div className="mb-4 border-editor-border border-l-4 border-0 bg-editor rounded-lg pl-4">
+            <h1 className="font-medium mb-2">Serve Folder</h1>
+            <div className="flex flex-col gap-2">
+              {serveStatus.isRunning ? (
+                <>
+                  <div className="text-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                      <span className="text-green-500 font-medium">Running</span>
+                    </div>
+                    {serveStatus.folderPath && (
+                      <div className="font-mono text-xs bg-editor-border rounded px-2 py-1 mb-2 truncate" title={serveStatus.folderPath}>
+                        {serveStatus.folderPath}
+                      </div>
+                    )}
+                    {serveStatus.url && (
+                      <button
+                        className="text-center bg-button text-button-foreground py-1 px-4 rounded text-sm hover:opacity-80 w-full mb-2"
+                        onClick={handleOpenServeUrl}
+                      >
+                        Open {serveStatus.url}
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    className="text-center bg-red-600 text-white py-1 px-4 rounded text-sm hover:opacity-80"
+                    onClick={handleStopServe}
+                  >
+                    Stop Server
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Start a local development server for a Trilogy folder.
+                  </p>
+                  {serveStatus.error && (
+                    <div className="text-sm text-red-500 bg-red-500/10 rounded px-2 py-1">
+                      {serveStatus.error}
+                    </div>
+                  )}
+                  <button
+                    className="text-center bg-button text-button-foreground py-1 px-4 rounded text-sm hover:opacity-80"
+                    onClick={handleStartServe}
+                  >
+                    Select Folder & Serve
+                  </button>
+                </>
               )}
             </div>
           </div>

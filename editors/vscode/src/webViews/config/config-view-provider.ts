@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { getNonce, replaceWebviewHtmlTokens } from "../utility";
 import { TrilogyConfigService, TrilogyConfig } from "../../trilogyConfigService";
+import { TrilogyServeService, ServeStatus } from "../../trilogyServeService";
 
 const utf8TextDecoder = new TextDecoder("utf8");
 
@@ -9,9 +10,11 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
 
   private _view?: vscode.WebviewView;
   private _configService: TrilogyConfigService;
+  private _serveService: TrilogyServeService;
 
   constructor(private readonly extensionUri: vscode.Uri) {
     this._configService = TrilogyConfigService.getInstance();
+    this._serveService = TrilogyServeService.getInstance();
 
     // Listen for config changes
     this._configService.onConfigsChanged(() => {
@@ -20,6 +23,11 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
 
     this._configService.onActiveConfigChanged(() => {
       this.updateWebview();
+    });
+
+    // Listen for serve status changes
+    this._serveService.onStatusChanged(() => {
+      this.updateServeStatus();
     });
   }
 
@@ -61,12 +69,26 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
             await vscode.commands.executeCommand('vscode.open', uri);
           }
           break;
+        case 'startServe':
+          if (data.path) {
+            await this._serveService.startServe(data.path);
+          } else {
+            await this._serveService.selectAndServeFolder();
+          }
+          break;
+        case 'stopServe':
+          await this._serveService.stopServe();
+          break;
+        case 'openServeUrl':
+          this._serveService.openUrl();
+          break;
       }
     });
 
     // Send initial state after a short delay to ensure webview is ready
     setTimeout(() => {
       this.updateWebview();
+      this.updateServeStatus();
     }, 100);
   }
 
@@ -86,6 +108,16 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
         setupFiles: c.setupFiles
       })),
       activeConfigPath: activeConfig?.path || null
+    });
+  }
+
+  private updateServeStatus() {
+    if (!this._view) return;
+
+    const status = this._serveService.status;
+    this._view.webview.postMessage({
+      type: 'updateServeStatus',
+      serveStatus: status
     });
   }
 
