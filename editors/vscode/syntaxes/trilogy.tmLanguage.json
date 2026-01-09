@@ -307,7 +307,7 @@
 				},
 				{
 					"name": "keyword.control.flow.trilogy",
-					"match": "(?i)(?x)\n  \\b(?<!\\.)(\n   raw_sql | async | continue | select | del | assert | persist | into | break | finally | for\n    | from | elif | else | if | except | pass | raise\n    | return | try | while | with\n  )\\b\n"
+					"match": "(?i)(?x)\n  \\b(?<!\\.)(\n   raw_sql | async | continue | select | del | assert | persist | into | break | finally | for\n    | from | elif | else | if | except | pass | raise\n    | return | try | while | with | datasource | root\n  )\\b\n"
 				},
 				{
 					"name": "storage.modifier.declaration.trilogy",

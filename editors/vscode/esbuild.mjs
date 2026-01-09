@@ -2,11 +2,23 @@ import * as esbuild from 'esbuild';
 import {resolve} from 'path';
 import { fileURLToPath } from 'url';
 import {dirname} from 'path';
+import {copyFileSync, watchFile} from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
+
+// Copy CSS file
+const cssSource = resolve(__dirname, 'src/media/input.css');
+const cssDest = resolve(__dirname, 'dist/output.css');
+
+function copyCSS() {
+  copyFileSync(cssSource, cssDest);
+  console.log('[css] copied input.css to dist/output.css');
+}
+
+copyCSS();
 
 
 /**
@@ -72,6 +84,8 @@ const entryConfigs = [
   
     if (watch) {
       await Promise.all(contexts.map(ctx => ctx.watch()));
+      // Watch CSS file for changes
+      watchFile(cssSource, () => copyCSS());
     } else {
       await Promise.all(contexts.map(ctx => ctx.rebuild()));
       await Promise.all(contexts.map(ctx => ctx.dispose()));

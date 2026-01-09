@@ -14,3 +14,7 @@ converterPython.tmLanguage.xml
 .vscode
 .venv
 .mypy_cache
+.claude/
+tsconfig.tsbuildinfo
+.claude/settings.local.json
+

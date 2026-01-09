@@ -43,6 +43,14 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [this.getRootUri()],
     };
 
+    // Retain webview content when hidden to preserve state
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        this.updateWebview();
+        this.updateServeStatus();
+      }
+    });
+
     webviewView.webview.html = await this.getHtmlForWebview(
       webviewView.webview
     );
