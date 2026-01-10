@@ -151,6 +151,7 @@
 		"@twbs/fantasticon": "^3.0.0",
 		"@types/chai": "^4.3.19",
 		"@types/glob": "^8.1.0",
+		"glob": "^8.1.0",
 		"@types/mocha": "^10.0.6",
 		"@types/node": "^18",
 		"@types/vscode": "^1.73.0",
