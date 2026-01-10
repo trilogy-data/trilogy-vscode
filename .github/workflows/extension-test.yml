@@ -1,7 +1,4 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
-name: Test VCode Extension
+name: Test VS Code Extension
 
 on:
   push:
@@ -11,31 +8,51 @@ on:
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             python-version: "3.12"
           - os: ubuntu-latest
             python-version: "3.12"
-    runs-on: ${{ matrix.os }}
+
     steps:
-        - uses: actions/checkout@v4
-        - uses: actions/setup-python@v4
-          with:
-            python-version: "3.12"
-        - uses: actions/setup-node@v4
-          with:
-            node-version: 20.x
-            cache: 'npm'
-            cache-dependency-path: editors/vscode/package-lock.json
-        - run: npm install --include=dev
-          working-directory: ./editors/vscode
-        - run: npm run test:grammar
-          working-directory: ./editors/vscode
-        - run: xvfb-run -a npm test
-          if: runner.os == 'Linux'
-          working-directory: ./editors/vscode
-        - run: npm test
-          if: runner.os != 'Linux'
-          working-directory: ./editors/vscode
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: editors/vscode/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: editors/vscode
+        run: pnpm install --frozen-lockfile
+
+      - name: Run grammar tests
+        working-directory: editors/vscode
+        run: pnpm run test:grammar
+
+      - name: Run VS Code extension tests (Linux)
+        if: runner.os == 'Linux'
+        working-directory: editors/vscode
+        run: xvfb-run -a pnpm test
+
+      - name: Run VS Code extension tests (Windows/macOS)
+        if: runner.os != 'Linux'
+        working-directory: editors/vscode
+        run: pnpm test

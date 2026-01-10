@@ -27,55 +27,97 @@ const vscode = acquireVsCodeApi();
 function ConfigItem({
   config,
   isActive,
+  isServing,
+  serveUrl,
+  serveError,
   onSelect,
   onOpen,
+  onServe,
+  onStopServe,
+  onOpenServeUrl,
 }: {
   config: TrilogyConfig;
   isActive: boolean;
+  isServing: boolean;
+  serveUrl: string | null;
+  serveError: string | null;
   onSelect: () => void;
   onOpen: () => void;
+  onServe: () => void;
+  onStopServe: () => void;
+  onOpenServeUrl: () => void;
 }) {
   return (
     <div
-      className={`p-2 rounded cursor-pointer border transition-colors ${
-        isActive
-          ? "bg-button text-button-foreground border-button"
-          : "bg-editor border-editor-border hover:border-button"
-      }`}
+      className={`list-item ${isActive ? "selected" : ""}`}
       onClick={onSelect}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium truncate" title={config.relativePath}>
-            {config.relativePath}
-          </div>
+      <div className="list-item-row">
+        <div className="list-item-content" title={config.relativePath}>
+          {config.relativePath}
           {config.dialect && (
-            <div className="text-xs text-muted-foreground mt-1">
-              Dialect: <span className="font-mono">{config.dialect}</span>
-            </div>
+            <div className="description">{config.dialect}</div>
           )}
         </div>
-        <button
-          className="p-1 hover:bg-editor-border rounded text-muted-foreground hover:text-foreground"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpen();
-          }}
-          title="Open file"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 16 16"
-            fill="currentColor"
+        <div className="list-item-actions">
+          {isServing ? (
+            <>
+              {serveUrl && (
+                <button
+                  className="icon-btn green"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenServeUrl();
+                  }}
+                  title={`Open ${serveUrl}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
+                    <path d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
+                  </svg>
+                </button>
+              )}
+              <button
+                className="icon-btn red"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStopServe();
+                }}
+                title="Stop server"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
+                </svg>
+              </button>
+            </>
+          ) : (
+            <button
+              className="inline-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onServe();
+              }}
+              title="Start local dev server"
+            >
+              Serve
+            </button>
+          )}
+          <button
+            className="icon-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen();
+            }}
+            title="Open file"
           >
-            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
-          </svg>
-        </button>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
+            </svg>
+          </button>
+        </div>
       </div>
-      {isActive && (
-        <div className="text-xs mt-1 opacity-80">Active</div>
-      )}
+      {isActive && <div className="badge">Active</div>}
+      {serveError && <div className="error">{serveError}</div>}
     </div>
   );
 }
@@ -124,8 +166,9 @@ function App() {
     vscode.postMessage({ type: "openConfigFile", path: config.path });
   };
 
-  const handleStartServe = () => {
-    vscode.postMessage({ type: "startServe" });
+  const handleStartServe = (configPath: string) => {
+    const parentDir = configPath.replace(/[/\\][^/\\]+$/, '');
+    vscode.postMessage({ type: "startServe", path: parentDir });
   };
 
   const handleStopServe = () => {
@@ -138,158 +181,92 @@ function App() {
 
   const activeConfig = configs.find((c) => c.path === activeConfigPath);
 
+  const isConfigServing = (configPath: string) => {
+    if (!serveStatus.isRunning || !serveStatus.folderPath) return false;
+    const parentDir = configPath.replace(/[/\\][^/\\]+$/, '');
+    return serveStatus.folderPath === parentDir;
+  };
+
   return (
-    <>
-      <header>
-        <div>
-          <div className="mb-4 border-editor-border border-l-4 border-0 bg-editor rounded-lg pl-4">
-            <div className="flex items-center justify-between mb-1">
-              <h1 className="font-medium">Active Configuration</h1>
-              <button
-                className="p-1 hover:bg-editor-border rounded text-muted-foreground hover:text-foreground"
-                onClick={handleRefresh}
-                title="Refresh configurations"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"
-                  />
-                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex flex-col gap-2">
-              {activeConfig ? (
-                <>
-                  <div className="text-sm">
-                    <div className="font-mono text-xs bg-editor-border rounded px-2 py-1">
-                      {activeConfig.relativePath}
-                    </div>
-                    {activeConfig.dialect && (
-                      <div className="mt-2 text-muted-foreground">
-                        Dialect: <span className="font-mono">{activeConfig.dialect}</span>
-                      </div>
-                    )}
-                    {activeConfig.setupFiles && activeConfig.setupFiles.length > 0 && (
-                      <div className="mt-1 text-muted-foreground text-xs">
-                        Setup: {activeConfig.setupFiles.length} file(s)
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    className="text-center bg-editor-border text-foreground py-1 px-4 rounded text-sm hover:opacity-80"
-                    onClick={handleClearConfig}
-                  >
-                    Use Default (DuckDB)
-                  </button>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Using default DuckDB connection. Select a trilogy.toml below to use a
-                  different configuration.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="mb-4 border-editor-border border-l-4 border-0 bg-editor rounded-lg pl-4">
-            <h1 className="font-medium mb-2">Available Configurations</h1>
-            <div className="flex flex-col gap-2">
-              {configs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No trilogy.toml files found in workspace. Create one to configure
-                  your dialect and setup scripts.
-                </p>
-              ) : (
-                configs.map((config) => (
-                  <ConfigItem
-                    key={config.path}
-                    config={config}
-                    isActive={config.path === activeConfigPath}
-                    onSelect={() => handleSelectConfig(config)}
-                    onOpen={() => handleOpenConfig(config)}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="mb-4 border-editor-border border-l-4 border-0 bg-editor rounded-lg pl-4">
-            <h1 className="font-medium mb-2">Serve Folder</h1>
-            <div className="flex flex-col gap-2">
-              {serveStatus.isRunning ? (
-                <>
-                  <div className="text-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                      <span className="text-green-500 font-medium">Running</span>
-                    </div>
-                    {serveStatus.folderPath && (
-                      <div className="font-mono text-xs bg-editor-border rounded px-2 py-1 mb-2 truncate" title={serveStatus.folderPath}>
-                        {serveStatus.folderPath}
-                      </div>
-                    )}
-                    {serveStatus.url && (
-                      <button
-                        className="text-center bg-button text-button-foreground py-1 px-4 rounded text-sm hover:opacity-80 w-full mb-2"
-                        onClick={handleOpenServeUrl}
-                      >
-                        Open {serveStatus.url}
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    className="text-center bg-red-600 text-white py-1 px-4 rounded text-sm hover:opacity-80"
-                    onClick={handleStopServe}
-                  >
-                    Stop Server
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Start a local development server for a Trilogy folder.
-                  </p>
-                  {serveStatus.error && (
-                    <div className="text-sm text-red-500 bg-red-500/10 rounded px-2 py-1">
-                      {serveStatus.error}
-                    </div>
-                  )}
-                  <button
-                    className="text-center bg-button text-button-foreground py-1 px-4 rounded text-sm hover:opacity-80"
-                    onClick={handleStartServe}
-                  >
-                    Select Folder & Serve
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+    <div className="sidebar">
+      {/* Active Configuration Section */}
+      <div className="section">
+        <div className="section-header">
+          <span>Active Configuration</span>
+          <button className="icon-btn" onClick={handleRefresh} title="Refresh">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+              <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+            </svg>
+          </button>
         </div>
-      </header>
-      <main>
-        <nav className="space-y-8">
-          <div>
-            <h2 className="mb-2 tracking-widest uppercase text-xs text-muted-foreground">
-              Configure GenAI
-            </h2>
-            <a
-              href="command:trilogy.setOpenAIApiKey"
-              className="flex gap-2 items-center"
-            >
-              <i className="pdicon pdicon-openai text-sm inline-flex"></i>
-              <div>OpenAI </div>
-            </a>
-          </div>
-        </nav>
-      </main>
-    </>
+        <div className="section-content">
+          {activeConfig ? (
+            <>
+              <div className="item-row">
+                <span className="mono">{activeConfig.relativePath}</span>
+              </div>
+              {activeConfig.dialect && (
+                <div className="item-row muted">
+                  Dialect: <span className="mono">{activeConfig.dialect}</span>
+                </div>
+              )}
+              {activeConfig.setupFiles && activeConfig.setupFiles.length > 0 && (
+                <div className="item-row muted">
+                  Setup: {activeConfig.setupFiles.length} file(s)
+                </div>
+              )}
+              <button className="btn" onClick={handleClearConfig}>
+                Use Default (DuckDB)
+              </button>
+            </>
+          ) : (
+            <div className="item-row muted">Using default DuckDB connection.</div>
+          )}
+        </div>
+      </div>
+
+      {/* Configurations Section */}
+      <div className="section">
+        <div className="section-header">
+          <span>Configurations</span>
+        </div>
+        <div className="section-content">
+          {configs.length === 0 ? (
+            <div className="item-row muted">No trilogy.toml files found.</div>
+          ) : (
+            configs.map((config) => (
+              <ConfigItem
+                key={config.path}
+                config={config}
+                isActive={config.path === activeConfigPath}
+                isServing={isConfigServing(config.path)}
+                serveUrl={isConfigServing(config.path) ? serveStatus.url : null}
+                serveError={isConfigServing(config.path) ? serveStatus.error : null}
+                onSelect={() => handleSelectConfig(config)}
+                onOpen={() => handleOpenConfig(config)}
+                onServe={() => handleStartServe(config.path)}
+                onStopServe={handleStopServe}
+                onOpenServeUrl={handleOpenServeUrl}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* GenAI Section */}
+      <div className="section">
+        <div className="section-header">
+          <span>GenAI</span>
+        </div>
+        <div className="section-content">
+          <a href="command:trilogy.setOpenAIApiKey" className="link">
+            <i className="pdicon pdicon-openai"></i>
+            <span>OpenAI</span>
+          </a>
+        </div>
+      </div>
+    </div>
   );
 }
 

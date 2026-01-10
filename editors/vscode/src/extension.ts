@@ -7,7 +7,6 @@ import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	StreamInfo,
 } from 'vscode-languageclient';
 import QueryPanel from './webViews/query/queryPanel';
 import RenderPanel from './webViews/render/renderPanel';
@@ -16,7 +15,6 @@ import { ConfigViewProvider } from "./webViews/config/config-view-provider";
 import { TrilogyConfigService } from "./trilogyConfigService";
 import { TrilogyServeService } from "./trilogyServeService";
 import * as os from 'os';
-import { spawn, ChildProcess } from 'child_process';
 const isWindows = os.platform() === 'win32';
 
 let client: LanguageClient;

@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { spawn, ChildProcess } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
 
 export interface ServeStatus {
   isRunning: boolean;
@@ -67,8 +69,8 @@ export class TrilogyServeService {
     this.notifyStatusChanged();
 
     try {
-      // Get the trilogy executable path - try 'trilogy' in PATH first
-      const trilogyCommand = await this.findTrilogyCommand();
+      // Get the trilogy executable path - check venv first, then PATH
+      const trilogyCommand = await this.findTrilogyCommand(folderPath);
 
       this._outputChannel.show(true);
       this._outputChannel.appendLine(`Starting Trilogy serve for: ${folderPath}`);
@@ -104,6 +106,12 @@ export class TrilogyServeService {
           this._status.isRunning = true;
           this.notifyStatusChanged();
           vscode.window.showInformationMessage(`Trilogy server running at ${this._status.url}`);
+        }
+
+        // Capture error messages for display
+        if (output.toLowerCase().includes('error') || output.toLowerCase().includes('traceback')) {
+          this._status.error = output.trim().split('\n').slice(-3).join(' ').substring(0, 200);
+          this.notifyStatusChanged();
         }
       });
 
@@ -196,28 +204,152 @@ export class TrilogyServeService {
     }
   }
 
-  private async findTrilogyCommand(): Promise<string> {
-    // Check if trilogy is available in PATH
-    const isAvailable = await this.checkTrilogyAvailable();
-    if (!isAvailable) {
-      const action = await vscode.window.showErrorMessage(
-        'Trilogy CLI not found. Please install it to use the serve feature.',
-        'Show Installation Instructions',
-        'Cancel'
-      );
-      if (action === 'Show Installation Instructions') {
-        vscode.env.openExternal(vscode.Uri.parse('https://github.com/trilogy-data/pytrilogy#installation'));
-      }
-      throw new Error('Trilogy CLI not found. Install with: pip/uv install pytrilogy');
+  private async findTrilogyCommand(folderPath: string): Promise<string> {
+    this._outputChannel.appendLine('Looking for trilogy CLI...');
+
+    // First, check for virtual environment in the workspace
+    const venvPaths = await this.findVenvTrilogyPath(folderPath);
+    if (venvPaths) {
+      this._outputChannel.appendLine(`Found trilogy in venv: ${venvPaths}`);
+      return venvPaths;
     }
-    return 'trilogy';
+
+    // Then check if trilogy is available in PATH
+    const isAvailable = await this.checkTrilogyAvailable('trilogy');
+    if (isAvailable) {
+      this._outputChannel.appendLine('Found trilogy in PATH');
+      return 'trilogy';
+    }
+
+    const action = await vscode.window.showErrorMessage(
+      'Trilogy CLI not found. Please install it to use the serve feature.',
+      'Show Installation Instructions',
+      'Cancel'
+    );
+    if (action === 'Show Installation Instructions') {
+      vscode.env.openExternal(vscode.Uri.parse('https://github.com/trilogy-data/pytrilogy#installation'));
+    }
+    throw new Error('Trilogy CLI not found. Install with: pip/uv install pytrilogy');
   }
 
-  private async checkTrilogyAvailable(): Promise<boolean> {
+  private async findVenvTrilogyPath(folderPath: string): Promise<string | null> {
+    const isWindows = process.platform === 'win32';
+    const trilogyBinary = isWindows ? 'trilogy.exe' : 'trilogy';
+    const binDir = isWindows ? 'Scripts' : 'bin';
+
+    // First, try to get the Python interpreter from VSCode's Python extension
+    const pythonPath = await this.getVSCodePythonPath();
+    if (pythonPath) {
+      this._outputChannel.appendLine(`VSCode Python interpreter: ${pythonPath}`);
+      // Extract the venv bin/Scripts directory from the python path
+      const pythonDir = path.dirname(pythonPath);
+      const trilogyPath = path.join(pythonDir, trilogyBinary);
+      this._outputChannel.appendLine(`Checking: ${trilogyPath}`);
+
+      if (fs.existsSync(trilogyPath)) {
+        const works = await this.checkTrilogyAvailable(trilogyPath);
+        if (works) {
+          return trilogyPath;
+        }
+      }
+    }
+
+    // Fall back to looking for common virtual environment locations
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    const searchPaths: string[] = [folderPath];
+
+    if (workspaceFolders) {
+      for (const folder of workspaceFolders) {
+        searchPaths.push(folder.uri.fsPath);
+      }
+    }
+
+    const venvNames = ['.venv', 'venv', '.env', 'env', '.venv-1', 'venv-1'];
+
+    for (const searchPath of searchPaths) {
+      for (const venvName of venvNames) {
+        const trilogyPath = path.join(searchPath, venvName, binDir, trilogyBinary);
+        this._outputChannel.appendLine(`Checking: ${trilogyPath}`);
+
+        if (fs.existsSync(trilogyPath)) {
+          // Verify it actually works
+          const works = await this.checkTrilogyAvailable(trilogyPath);
+          if (works) {
+            return trilogyPath;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private async getVSCodePythonPath(): Promise<string | null> {
+    try {
+      // Try to get the Python path from VSCode's Python extension
+      const pythonExtension = vscode.extensions.getExtension('ms-python.python');
+      if (pythonExtension) {
+        if (!pythonExtension.isActive) {
+          await pythonExtension.activate();
+        }
+        const pythonApi = pythonExtension.exports;
+
+        // Try the newer API first
+        if (pythonApi?.environments?.getActiveEnvironmentPath) {
+          const envPath = await pythonApi.environments.getActiveEnvironmentPath();
+          if (envPath?.path) {
+            return envPath.path;
+          }
+        }
+      }
+
+      // Fall back to checking the python.defaultInterpreterPath setting
+      const config = vscode.workspace.getConfiguration('python');
+      const defaultPath = config.get<string>('defaultInterpreterPath');
+      if (defaultPath && defaultPath !== 'python') {
+        return defaultPath;
+      }
+
+      // Also check pythonPath (older setting)
+      const pythonPath = config.get<string>('pythonPath');
+      if (pythonPath && pythonPath !== 'python') {
+        return pythonPath;
+      }
+    } catch (err) {
+      this._outputChannel.appendLine(`Error getting Python path: ${err}`);
+    }
+
+    return null;
+  }
+
+  private async checkTrilogyAvailable(trilogyCmd: string): Promise<boolean> {
     return new Promise((resolve) => {
-      const checkProcess = spawn('trilogy', ['--version'], { shell: true });
-      checkProcess.on('error', () => resolve(false));
-      checkProcess.on('close', (code) => resolve(code === 0));
+      this._outputChannel.appendLine(`Checking: ${trilogyCmd} --version`);
+
+      const checkProcess = spawn(trilogyCmd, ['--version'], { shell: true });
+
+      let stdout = '';
+      let stderr = '';
+
+      checkProcess.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      checkProcess.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      checkProcess.on('error', (err) => {
+        this._outputChannel.appendLine(`  error: ${err.message}`);
+        resolve(false);
+      });
+
+      checkProcess.on('close', (code) => {
+        this._outputChannel.appendLine(`  exit code: ${code}`);
+        if (stdout) this._outputChannel.appendLine(`  stdout: ${stdout.trim()}`);
+        if (stderr) this._outputChannel.appendLine(`  stderr: ${stderr.trim()}`);
+        resolve(code === 0);
+      });
     });
   }
 
