@@ -128,7 +128,7 @@
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint \"src/**/*.ts\" --fix",
-		"package": "vsce package --out trilogy_tools.vsix",
+		"package": "vsce package --no-dependencies --out trilogy_tools.vsix",
 		"watch:esbuild": "node esbuild.mjs --watch",
 		"icons:svgo": "svgo -q -f ./images/icons/ --config svgo.config.js",
 		"build:icons": "pnpm run icons:svgo && fantasticon",

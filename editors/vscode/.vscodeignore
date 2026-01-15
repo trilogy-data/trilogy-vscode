@@ -5,7 +5,14 @@ node_modules/**
 src/**
 .gitignore
 .yarnrc
+.npmrc
+pnpm-lock.yaml
 esbuild.js
+esbuild.mjs
+include_dependencies.js
+build-backend.js
+tsconfig.json
+svgo.config.js
 vsc-extension-quickstart.md
 **/.eslintrc.json
 **/*.map
