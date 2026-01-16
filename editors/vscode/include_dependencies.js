@@ -1,27 +1,39 @@
 const fs = require('fs');
 const path = require('path');
 
-let src;
-try {
-    // Use Node's module resolution to find the path to the module
-    src = require.resolve('duckdb/lib/binding/duckdb.node');
-} catch (err) {
-    throw new Error('duckdb.node not found in node_modules');
-}
-
 const dest = path.resolve(__dirname, './dist/binding/duckdb.node');
 
-// Check if source file exists (redundant because require.resolve will throw an error if not found)
-if (!fs.existsSync(src)) {
-    throw new Error(`Source file not found: ${src}`);
+// Check if duckdb.node was already downloaded by download-duckdb-binary.js (for cross-platform builds)
+const targetPlatform = process.env.TARGET_PLATFORM;
+const targetArch = process.env.TARGET_ARCH;
+const isCrossPlatform = targetPlatform && targetArch &&
+    (targetPlatform !== process.platform || targetArch !== process.arch);
+
+if (fs.existsSync(dest) && isCrossPlatform) {
+    console.log(`Using pre-downloaded duckdb.node for ${targetPlatform}-${targetArch} at ${dest}`);
+} else {
+    // For native builds or when cross-platform binary not yet downloaded,
+    // copy from node_modules
+    let src;
+    try {
+        // Use Node's module resolution to find the path to the module
+        src = require.resolve('duckdb/lib/binding/duckdb.node');
+    } catch (err) {
+        throw new Error('duckdb.node not found in node_modules');
+    }
+
+    // Check if source file exists (redundant because require.resolve will throw an error if not found)
+    if (!fs.existsSync(src)) {
+        throw new Error(`Source file not found: ${src}`);
+    }
+
+    // Ensure destination directory exists
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+
+    // Copy the file
+    fs.copyFileSync(src, dest);
+    console.log(`Copied ${src} to ${dest}`);
 }
-
-// Ensure destination directory exists
-fs.mkdirSync(path.dirname(dest), { recursive: true });
-
-// Copy the file
-fs.copyFileSync(src, dest);
-console.log(`Copied ${src} to ${dest}`);
 
 // Copy a file from source to destination
 function copyFile(srcFile, destFile) {
