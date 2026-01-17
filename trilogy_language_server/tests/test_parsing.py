@@ -48,8 +48,8 @@ def test_code_lense_tree():
         environment=Environment(), text=basic, input=tree, dialect=dialect
     )
     expected_query = """SELECT
-    :omicron as "omicron",
-    :test as "test"
+    1 as "omicron",
+    1 as "test"
 """
     assert comp[0].command.arguments[0] == expected_query
     assert comp[0] == CodeLens(
