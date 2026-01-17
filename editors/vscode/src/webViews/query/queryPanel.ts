@@ -60,8 +60,7 @@ class QueryPanel {
     public async runQuery(query: string) {
         //notify the panel a query is running
         this._panel.webview.postMessage({ type: 'query-start' });
-        this._queryDocument.runQuery(query, 100, (msg: IMessage) => { this._last_msg = msg; this._panel.webview.postMessage(msg); });
-
+        await this._queryDocument.runQuery(query, 100, (msg: IMessage) => { this._last_msg = msg; this._panel.webview.postMessage(msg); });
     }
 
     public static async createOrShow(extensionUri: vscode.Uri) {

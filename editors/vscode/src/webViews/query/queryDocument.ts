@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { Disposable } from '../dispose';
-import { Database, TableData } from "duckdb";
-import { ColumnDescription, IMessage } from './common';
+import { DuckDBInstance, DuckDBConnection } from "@duckdb/node-api";
+import { ColumnDescription, IMessage, RowData } from './common';
 import { TrilogyConfigService } from '../../trilogyConfigService';
 
 export class QueryDocument extends Disposable implements vscode.CustomDocument {
@@ -19,7 +19,8 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
     }
 
     private readonly _uri: vscode.Uri;
-    private _db: any;
+    private _instance: DuckDBInstance | null = null;
+    private _connection: DuckDBConnection | null = null;
     private _configService: TrilogyConfigService;
     private _setupCompleted: boolean = false;
 
@@ -30,7 +31,9 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
     }
 
     private async init() {
-        this._db = new Database(':memory:');
+        // Create an in-memory DuckDB instance
+        this._instance = await DuckDBInstance.create(':memory:');
+        this._connection = await this._instance.connect();
         await this.runSetupScripts();
     }
 
@@ -55,18 +58,13 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
                 const sql = new TextDecoder('utf-8').decode(content);
 
                 // Execute the setup SQL
-                await new Promise<void>((resolve, reject) => {
-                    this._db.exec(sql, (err: Error | null) => {
-                        if (err) {
-                            console.error(`Error running setup script ${setupFile}:`, err);
-                            // Continue with other scripts even if one fails
-                            resolve();
-                        } else {
-                            console.log(`Successfully ran setup script: ${setupFile}`);
-                            resolve();
-                        }
-                    });
-                });
+                try {
+                    await this.connection.run(sql);
+                    console.log(`Successfully ran setup script: ${setupFile}`);
+                } catch (err) {
+                    console.error(`Error running setup script ${setupFile}:`, err);
+                    // Continue with other scripts even if one fails
+                }
             } catch (error) {
                 console.error(`Failed to read setup script ${setupFile}:`, error);
             }
@@ -76,7 +74,7 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
     }
 
     public get uri() { return this._uri; }
-    public get db() { return this._db; }
+    public get connection() { return this._connection!; }
     public get dialect(): string {
         return this._configService.getActiveDialect();
     }
@@ -94,6 +92,13 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
      */
     dispose(): void {
         this._onDidDispose.fire();
+        // Close connection and instance
+        if (this._connection) {
+            this._connection.closeSync();
+        }
+        if (this._instance) {
+            this._instance.closeSync();
+        }
         super.dispose();
     }
 
@@ -101,72 +106,71 @@ export class QueryDocument extends Disposable implements vscode.CustomDocument {
         return `SELECT * FROM (\n${sql.replace(';', '')}\n) LIMIT ${limit} OFFSET ${offset}`;
     }
 
-    private cleanResults(results: TableData): TableData {
+    private cleanResults(results: RowData[]): RowData[] {
         // DuckDB can sometimes give us BigInt values, which won't JSON.stringify
         // https://github.com/duckdb/duckdb-node/blob/f9a910d544835f55dac36485d767b1c2f6aafb87/src/statement.cpp#L122
         for (const row of results) {
             for (const [key, value] of Object.entries(row)) {
-                if (typeof value == "bigint")
+                if (typeof value === "bigint") {
                     row[key] = Number(value);
+                }
             }
         }
         return results;
     }
 
+    /**
+     * Execute SQL and return results as row objects
+     */
+    private async executeAndGetRows(sql: string): Promise<RowData[]> {
+        const reader = await this.connection.runAndReadAll(sql);
+        return reader.getRowObjects() as RowData[];
+    }
 
-    runQuery(sql: string, limit: number, callback: (msg: IMessage) => void): void {
+    async runQuery(sql: string, limit: number, callback: (msg: IMessage) => void): Promise<void> {
         // check if it is a CALL statement
         const checkSQL = sql.toLowerCase().trim();
-        if (checkSQL.startsWith('call') || checkSQL.startsWith('install')  || checkSQL.startsWith('load')) {
+        if (checkSQL.startsWith('call') || checkSQL.startsWith('install') || checkSQL.startsWith('load')) {
             callback({ type: 'query-parse', success: true, message: 'finished-parse' });
-            this.db.all(
-                sql,
-                (err: Error, res: any[]) => {
-                    if (err) {
-                        callback({ type: 'query', 'sql': sql, success: false, message: err.message, exception:err.message });
-                        return;
-                    }
-                    callback({ type: 'query', headers:[], 'sql': sql, success: true, results: this.cleanResults(res), exception: null });
-                }
-            );
+            try {
+                const rows = await this.executeAndGetRows(sql);
+                callback({ type: 'query', headers: [], sql: sql, success: true, results: this.cleanResults(rows), exception: null });
+            } catch (err: any) {
+                callback({ type: 'query', sql: sql, success: false, message: err.message, exception: err.message });
+            }
             return;
         }
 
-        // Fetch resulting column names and types
+        // Fetch resulting column names and types via DESCRIBE
+        try {
+            const descRows = await this.executeAndGetRows(`DESCRIBE (${sql.replace(';', '')});`);
+            const headers: ColumnDescription[] = descRows.map(row => ({
+                column_name: String(row['column_name'] || row['name'] || ''),
+                column_type: String(row['column_type'] || row['type'] || ''),
+                null: String(row['null'] || ''),
+                key: row['key'] ? String(row['key']) : null,
+                default: row['default'] ? String(row['default']) : null,
+                extra: row['extra'] ? String(row['extra']) : null,
+            }));
 
-        this.db.all(
-            `DESCRIBE (${sql.replace(';', '')});`,
-            (err: Error, descRes: ColumnDescription[]) => {
-                if (err) {
-                    callback({ type: 'query-parse', success: false, message: err.message , exception:err.message });
-                    return;
-                }
-
-                // Execute query
-                this.db.all(
-                    this.formatSql(sql, limit, 0),
-                    (err: Error, res: any[]) => {
-                        if (err) {
-                            callback({ type: 'query', 'sql': sql,  success: false, message: err.message, exception:err.message });
-                            return;
-                        }
-                        callback({ type: 'query', 'sql': sql, success: true, headers: descRes, results: this.cleanResults(res), exception: null });
-                    }
-                );
+            // Execute query with limit
+            try {
+                const rows = await this.executeAndGetRows(this.formatSql(sql, limit, 0));
+                callback({ type: 'query', sql: sql, success: true, headers: headers, results: this.cleanResults(rows), exception: null });
+            } catch (err: any) {
+                callback({ type: 'query', sql: sql, success: false, message: err.message, exception: err.message });
             }
-        );
+        } catch (err: any) {
+            callback({ type: 'query-parse', success: false, message: err.message, exception: err.message });
+        }
     }
 
-    fetchMore(sql: string, limit: number, offset: number, callback: (msg: IMessage) => void): void {
-        this.db.all(
-            this.formatSql(sql, limit, offset),
-            (err:Error, res:any[]) => {
-                if (err) {
-                    callback({ type: 'more', success: false, message: err.message });
-                    return;
-                }
-                callback({ type: 'more', success: true, results: this.cleanResults(res) });
-            }
-        );
+    async fetchMore(sql: string, limit: number, offset: number, callback: (msg: IMessage) => void): Promise<void> {
+        try {
+            const rows = await this.executeAndGetRows(this.formatSql(sql, limit, offset));
+            callback({ type: 'more', success: true, results: this.cleanResults(rows) });
+        } catch (err: any) {
+            callback({ type: 'more', success: false, message: err.message });
+        }
     }
 }

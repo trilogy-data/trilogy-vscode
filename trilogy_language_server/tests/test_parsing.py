@@ -48,8 +48,8 @@ def test_code_lense_tree():
         environment=Environment(), text=basic, input=tree, dialect=dialect
     )
     expected_query = """SELECT
-    :omicron as "omicron",
-    :test as "test"
+    1 as "omicron",
+    1 as "test"
 """
     assert comp[0].command.arguments[0] == expected_query
     assert comp[0] == CodeLens(
@@ -99,6 +99,7 @@ SELECT id;
 
 
 # Tests for hover functionality
+
 
 def test_extract_concept_locations():
     """Test that concept locations are extracted from parse tree"""
@@ -157,7 +158,9 @@ metric total_users <- count(user_id);
 
     # Should have concepts for user_id, name, total_users (plus auto-derived user_id.count)
     # Filter out internal concepts
-    user_concepts = {k: v for k, v in concept_info.items() if not k.startswith("local._")}
+    user_concepts = {
+        k: v for k, v in concept_info.items() if not k.startswith("local._")
+    }
     assert len(user_concepts) >= 3
 
     # Check user_id
