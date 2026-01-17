@@ -1,5 +1,7 @@
 
-import { TableData } from "duckdb";
+// Row data type - replaces duckdb's TableData
+export type RowData = { [key: string]: any };
+
 export interface ColumnDescription {
     column_name: string;
     column_type: string;
@@ -15,7 +17,7 @@ export interface IMessage {
     sql?: string
     message?: string;
     exception?: string | null;
-    results?: TableData;
+    results?: RowData[];
     headers?: ColumnDescription[];
 }
 

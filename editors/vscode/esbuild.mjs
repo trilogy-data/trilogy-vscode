@@ -71,7 +71,7 @@ const entryConfigs = [
         sourcesContent: false,
         platform: 'node',
         outfile: config.outfile,
-        external: ['vscode', 'duckdb', 'aws-sdk', 'mock-aws-s3', 'nock'],
+        external: ['vscode', '@duckdb/node-api', '@duckdb/node-bindings'],
         logLevel: 'silent',
         define: {
           'process.env.NODE_ENV': '"production"',
