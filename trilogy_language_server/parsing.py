@@ -1,4 +1,9 @@
-from trilogy_language_server.models import Token, TokenModifier, ConceptInfo, ConceptLocation
+from trilogy_language_server.models import (
+    Token,
+    TokenModifier,
+    ConceptInfo,
+    ConceptLocation,
+)
 from trilogy.parsing.parse_engine import PARSER
 from lark import ParseTree, Token as LarkToken
 from typing import List, Union, Dict, Optional
@@ -12,6 +17,9 @@ from trilogy.core.statements.author import (
     RawSQLStatement,
 )
 from trilogy.dialect.base import BaseDialect
+from trilogy.constants import CONFIG
+
+CONFIG.rendering.parameters = False
 
 
 def extract_subtext(
@@ -212,11 +220,17 @@ def extract_concept_locations(
     """
     locations: List[ConceptLocation] = []
 
-    def walk_tree(node: Union[ParseTree, LarkToken], in_definition: bool = False, parent_data: Optional[str] = None):
+    def walk_tree(
+        node: Union[ParseTree, LarkToken],
+        in_definition: bool = False,
+        parent_data: Optional[str] = None,
+    ):
         if isinstance(node, LarkToken):
             # We found a token - check if it's an identifier in a relevant context
             if node.type == "IDENTIFIER" and parent_data in (
-                CONCEPT_DEFINITION_NODES | CONCEPT_REFERENCE_NODES | {"grain_clause", "column_list"}
+                CONCEPT_DEFINITION_NODES
+                | CONCEPT_REFERENCE_NODES
+                | {"grain_clause", "column_list"}
             ):
                 # Determine if this is a definition or reference
                 is_def = parent_data in CONCEPT_DEFINITION_NODES
@@ -242,7 +256,8 @@ def extract_concept_locations(
                         start_line=node.line or 1,
                         start_column=node.column or 1,
                         end_line=node.end_line or node.line or 1,
-                        end_column=node.end_column or (node.column or 1) + len(identifier),
+                        end_column=node.end_column
+                        or (node.column or 1) + len(identifier),
                         is_definition=is_def,
                     )
                 )
@@ -332,7 +347,8 @@ def extract_concepts_from_environment(
         concept_list = environment.user_concepts()
     else:
         concept_list = [
-            c for c in environment.concepts.values()
+            c
+            for c in environment.concepts.values()
             if c.namespace != "__preql_internal"
         ]
 
@@ -374,13 +390,21 @@ def extract_concepts_from_environment(
         # Extract derivation
         derivation_str = None
         if hasattr(concept, "derivation") and concept.derivation:
-            derivation_str = str(concept.derivation.value) if hasattr(concept.derivation, "value") else str(concept.derivation)
+            derivation_str = (
+                str(concept.derivation.value)
+                if hasattr(concept.derivation, "value")
+                else str(concept.derivation)
+            )
 
         concepts[address] = ConceptInfo(
             name=concept.name,
             address=address,
             datatype=str(concept.datatype),
-            purpose=str(concept.purpose.value) if hasattr(concept.purpose, "value") else str(concept.purpose),
+            purpose=(
+                str(concept.purpose.value)
+                if hasattr(concept.purpose, "value")
+                else str(concept.purpose)
+            ),
             namespace=concept.namespace,
             line_number=line_number,
             column=column,

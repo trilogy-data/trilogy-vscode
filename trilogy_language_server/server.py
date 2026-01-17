@@ -41,7 +41,12 @@ from typing import Dict, List, Optional
 from trilogy_language_server.error_reporting import get_diagnostics
 import operator
 from lark import ParseTree
-from trilogy_language_server.models import TokenModifier, Token, ConceptInfo, ConceptLocation
+from trilogy_language_server.models import (
+    TokenModifier,
+    Token,
+    ConceptInfo,
+    ConceptLocation,
+)
 from trilogy_language_server.parsing import (
     tree_to_symbols,
     code_lense_tree,
@@ -344,9 +349,7 @@ def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Optional[Hover]:
             start=Position(
                 line=location.start_line - 1, character=location.start_column - 1
             ),
-            end=Position(
-                line=location.end_line - 1, character=location.end_column - 1
-            ),
+            end=Position(line=location.end_line - 1, character=location.end_column - 1),
         ),
     )
 

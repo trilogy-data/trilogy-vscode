@@ -391,7 +391,9 @@ class TestNestedImportFormatting:
         """Return the path to the nested test fixtures."""
         return Path(__file__).parent / "fixtures" / "nested"
 
-    def test_format_document_with_nested_import(self, mock_server, nested_fixtures_path):
+    def test_format_document_with_nested_import(
+        self, mock_server, nested_fixtures_path
+    ):
         """Test that formatting works for files with imports in nested folders.
 
         This tests the fix for imports being resolved relative to the file
@@ -475,7 +477,9 @@ class TestNestedImportFormatting:
         assert result is not None
         assert "SELECT" in result
 
-    def test_format_document_preserves_import_when_wrong_working_path(self, mock_server):
+    def test_format_document_preserves_import_when_wrong_working_path(
+        self, mock_server
+    ):
         """Test that demonstrates the fix for nested imports.
 
         Prior to the fix, imports would fail to resolve because the working_path
