@@ -18,6 +18,5 @@ vsc-extension-quickstart.md
 **/*.ts
 **/.vscode-test.*
 
-# Exclude node_modules except for duckdb packages (native modules)
+# Exclude all node_modules - DuckDB modules are copied to dist/node_modules by include_dependencies.js
 node_modules/**
-!node_modules/@duckdb/**
