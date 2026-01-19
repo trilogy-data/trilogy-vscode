@@ -20,6 +20,22 @@ interface VsCodeApi {
   postMessage(message: unknown): void;
 }
 
+interface CliCommand {
+  id: string;
+  label: string;
+  description: string;
+}
+
+const CLI_COMMANDS: CliCommand[] = [
+  { id: 'run', label: 'Run', description: 'Execute Trilogy scripts' },
+  { id: 'unit', label: 'Unit', description: 'Run unit tests' },
+  { id: 'integration', label: 'Integration', description: 'Run integration tests' },
+  { id: 'fmt', label: 'Fmt', description: 'Format Trilogy files' },
+  { id: 'plan', label: 'Plan', description: 'Show execution plan' },
+  { id: 'refresh', label: 'Refresh', description: 'Refresh stale assets' },
+  { id: 'ingest', label: 'Ingest', description: 'Bootstrap datasources' },
+];
+
 declare function acquireVsCodeApi(): VsCodeApi;
 
 const vscode = acquireVsCodeApi();
@@ -35,6 +51,7 @@ function ConfigItem({
   onServe,
   onStopServe,
   onOpenServeUrl,
+  onRunCommand,
 }: {
   config: TrilogyConfig;
   isActive: boolean;
@@ -46,78 +63,77 @@ function ConfigItem({
   onServe: () => void;
   onStopServe: () => void;
   onOpenServeUrl: () => void;
+  onRunCommand: (command: string) => void;
 }) {
   return (
-    <div
-      className={`list-item ${isActive ? "selected" : ""}`}
-      onClick={onSelect}
-    >
-      <div className="list-item-row">
-        <div className="list-item-content" title={config.relativePath}>
-          {config.relativePath}
+    <div className={`config-item ${isActive ? "selected" : ""}`}>
+      <div className="config-header" onClick={onSelect}>
+        <div className="config-info">
+          <span className="config-path" title={config.relativePath}>
+            {config.relativePath}
+          </span>
           {config.dialect && (
-            <div className="description">{config.dialect}</div>
+            <span className="config-dialect">{config.dialect}</span>
           )}
+          {isActive && <span className="config-active">Active</span>}
         </div>
-        <div className="list-item-actions">
-          {isServing ? (
-            <>
-              {serveUrl && (
-                <button
-                  className="icon-btn green"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenServeUrl();
-                  }}
-                  title={`Open ${serveUrl}`}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
-                    <path d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
-                  </svg>
-                </button>
-              )}
-              <button
-                className="icon-btn red"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStopServe();
-                }}
-                title="Stop server"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>
-                </svg>
-              </button>
-            </>
-          ) : (
-            <button
-              className="inline-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onServe();
-              }}
-              title="Start local dev server"
-            >
-              Serve
-            </button>
-          )}
-          <button
-            className="icon-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpen();
-            }}
-            title="Open file"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
-            </svg>
-          </button>
-        </div>
+        <button
+          className="icon-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+          }}
+          title="Open file"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z" />
+          </svg>
+        </button>
       </div>
-      {isActive && <div className="badge">Active</div>}
       {serveError && <div className="error">{serveError}</div>}
+
+      {/* Actions row - always visible */}
+      <div className="actions-row">
+        {CLI_COMMANDS.map((cmd) => (
+          <button
+            key={cmd.id}
+            className="action-btn"
+            onClick={() => onRunCommand(cmd.id)}
+            title={cmd.description}
+          >
+            {cmd.label}
+          </button>
+        ))}
+        {/* Serve button with special handling */}
+        {isServing ? (
+          <>
+            {serveUrl && (
+              <button
+                className="action-btn green"
+                onClick={onOpenServeUrl}
+                title={`Open ${serveUrl}`}
+              >
+                Open
+              </button>
+            )}
+            <button
+              className="action-btn red"
+              onClick={onStopServe}
+              title="Stop server"
+            >
+              Stop
+            </button>
+          </>
+        ) : (
+          <button
+            className="action-btn"
+            onClick={onServe}
+            title="Start local dev server"
+          >
+            Serve
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -177,6 +193,11 @@ function App() {
 
   const handleOpenServeUrl = () => {
     vscode.postMessage({ type: "openServeUrl" });
+  };
+
+  const handleRunCommand = (configPath: string, command: string) => {
+    const parentDir = configPath.replace(/[/\\][^/\\]+$/, '');
+    vscode.postMessage({ type: "runCliCommand", command, path: parentDir });
   };
 
   const activeConfig = configs.find((c) => c.path === activeConfigPath);
@@ -248,6 +269,7 @@ function App() {
                 onServe={() => handleStartServe(config.path)}
                 onStopServe={handleStopServe}
                 onOpenServeUrl={handleOpenServeUrl}
+                onRunCommand={(command) => handleRunCommand(config.path, command)}
               />
             ))
           )}

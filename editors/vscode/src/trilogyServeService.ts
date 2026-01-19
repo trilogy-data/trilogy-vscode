@@ -25,7 +25,7 @@ export class TrilogyServeService {
   private _statusListeners: ServeStatusListener[] = [];
 
   private constructor() {
-    this._outputChannel = vscode.window.createOutputChannel('Trilogy Serve');
+    this._outputChannel = vscode.window.createOutputChannel('Trilogy');
   }
 
   public static getInstance(): TrilogyServeService {
@@ -76,13 +76,18 @@ export class TrilogyServeService {
       this._outputChannel.appendLine(`Starting Trilogy serve for: ${folderPath}`);
       this._outputChannel.appendLine(`Using command: ${trilogyCommand} serve ${folderPath}`);
 
+      // Set PYTHONIOENCODING to UTF-8 to handle Unicode output properly on Windows
       this._serveProcess = spawn(trilogyCommand, ['serve', folderPath], {
         shell: true,
-        env: { ...process.env }
+        env: {
+          ...process.env,
+          PYTHONIOENCODING: 'utf-8',
+          PYTHONUTF8: '1'
+        }
       });
 
       this._serveProcess.stdout?.on('data', (data: Buffer) => {
-        const output = data.toString();
+        const output = data.toString('utf-8');
         this._outputChannel.appendLine(output);
 
         // Look for the URL in the output (typically like http://localhost:8000 or similar)
@@ -96,7 +101,7 @@ export class TrilogyServeService {
       });
 
       this._serveProcess.stderr?.on('data', (data: Buffer) => {
-        const output = data.toString();
+        const output = data.toString('utf-8');
         this._outputChannel.appendLine(`[stderr] ${output}`);
 
         // Some servers output the URL to stderr
@@ -201,6 +206,60 @@ export class TrilogyServeService {
   public openUrl(): void {
     if (this._status.url) {
       vscode.env.openExternal(vscode.Uri.parse(this._status.url));
+    }
+  }
+
+  /**
+   * Run a one-shot CLI command (not a long-running server)
+   */
+  public async runCommand(command: string, folderPath: string, args: string[] = []): Promise<void> {
+    try {
+      const trilogyCommand = await this.findTrilogyCommand(folderPath);
+
+      this._outputChannel.show(true);
+      this._outputChannel.appendLine(`\n${'='.repeat(60)}`);
+      this._outputChannel.appendLine(`Running: trilogy ${command} ${args.join(' ')} in ${folderPath}`);
+      this._outputChannel.appendLine('='.repeat(60));
+
+      const allArgs = [command, folderPath, ...args];
+
+      // Set PYTHONIOENCODING to UTF-8 to handle Unicode output properly on Windows
+      const childProcess = spawn(trilogyCommand, allArgs, {
+        shell: true,
+        env: {
+          ...process.env,
+          PYTHONIOENCODING: 'utf-8',
+          PYTHONUTF8: '1'
+        }
+      });
+
+      childProcess.stdout?.on('data', (data: Buffer) => {
+        const text = data.toString('utf-8');
+        this._outputChannel.appendLine(text);
+      });
+
+      childProcess.stderr?.on('data', (data: Buffer) => {
+        const text = data.toString('utf-8');
+        this._outputChannel.appendLine(text);
+      });
+
+      childProcess.on('error', (error: Error) => {
+        this._outputChannel.appendLine(`Error: ${error.message}`);
+        vscode.window.showErrorMessage(`Failed to run trilogy ${command}: ${error.message}`);
+      });
+
+      childProcess.on('close', (code: number | null) => {
+        this._outputChannel.appendLine(`\nProcess exited with code ${code}`);
+        if (code === 0) {
+          vscode.window.showInformationMessage(`trilogy ${command} completed successfully`);
+        } else {
+          vscode.window.showWarningMessage(`trilogy ${command} exited with code ${code}`);
+        }
+      });
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Failed to run trilogy ${command}: ${errorMessage}`);
     }
   }
 
