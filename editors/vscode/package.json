@@ -134,7 +134,7 @@
 		"build:icons": "pnpm run icons:svgo && fantasticon",
 		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\"",
 		"test:no-compile": "node ./out/test/runTest.js",
-		"test": "node include_dependencies.js && node build-backend.js && pnpm run compile && node esbuild.mjs && pnpm run icons:svgo && fantasticon && node ./out/test/runTest.js"
+		"test": "node include_dependencies.js && node build-backend.js && pnpm run compile && node esbuild.mjs && pnpm run icons:svgo && fantasticon && node ./out/test/runTest.js && pnpm test"
 	},
 	"dependencies": {
 		"@duckdb/node-api": "1.4.3-r.3",
