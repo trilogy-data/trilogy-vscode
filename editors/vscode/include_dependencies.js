@@ -105,4 +105,4 @@ function copyDuckDBModules() {
 
 // Call the functions
 copyHtmlFiles();
-// copyDuckDBModules();
+copyDuckDBModules();
