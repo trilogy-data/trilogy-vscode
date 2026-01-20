@@ -90,6 +90,11 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
         case 'openServeUrl':
           this._serveService.openUrl();
           break;
+        case 'runCliCommand':
+          if (data.command && data.path) {
+            await this._serveService.runCommand(data.command, data.path);
+          }
+          break;
       }
     });
 

@@ -41,7 +41,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: editors/vscode
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --shamefully-hoist --frozen-lockfile
 
       - name: Run grammar tests
         working-directory: editors/vscode
@@ -50,9 +50,9 @@ jobs:
       - name: Run VS Code extension tests (Linux)
         if: runner.os == 'Linux'
         working-directory: editors/vscode
-        run: xvfb-run -a pnpm test
+        run: xvfb-run -a pnpm run test
 
       - name: Run VS Code extension tests (Windows/macOS)
         if: runner.os != 'Linux'
         working-directory: editors/vscode
-        run: pnpm test
+        run: pnpm run test

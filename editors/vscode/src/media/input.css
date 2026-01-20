@@ -195,6 +195,111 @@ body {
   background: var(--vscode-list-hoverBackground);
 }
 
+/* Config item card */
+.config-item {
+  margin: 4px 8px;
+  padding: 8px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+}
+
+.config-item:hover {
+  border-color: var(--vscode-focusBorder);
+}
+
+.config-item.selected {
+  border-color: var(--vscode-focusBorder);
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
+.config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.config-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.config-path {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-dialect {
+  font-size: 10px;
+  padding: 1px 5px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.config-active {
+  font-size: 10px;
+  padding: 1px 5px;
+  background: rgba(137, 209, 133, 0.2);
+  color: #89d185;
+}
+
+/* Actions row */
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vscode-widget-border, rgba(255,255,255,0.1));
+}
+
+/* Action button */
+.action-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s, transform 0.1s;
+}
+
+.action-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+  transform: translateY(-1px);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+}
+
+.action-btn.green {
+  background: rgba(137, 209, 133, 0.2);
+  color: #89d185;
+}
+
+.action-btn.green:hover {
+  background: rgba(137, 209, 133, 0.3);
+}
+
+.action-btn.red {
+  background: rgba(244, 135, 113, 0.2);
+  color: #f48771;
+}
+
+.action-btn.red:hover {
+  background: rgba(244, 135, 113, 0.3);
+}
+
 /* For syntax highlighting panels */
 .language-sql {
   background-color: transparent !important;

@@ -36,8 +36,21 @@ def get_trilogy_lark_file():
             inclusion_files.append(( str(f), str(subroot)))
     return inclusion_files
 
+def get_trilogy_stdlib_files():
+    root = sys.modules.get(f'trilogy')
+    root = Path(root.__file__).parent
+
+    inclusion_files = []
+    std_dir = root / 'std'
+    if std_dir.exists():
+        for f in std_dir.iterdir():
+            if f.suffix == '.preql':
+                subroot = Path('trilogy') / 'std'
+                inclusion_files.append((str(f), str(subroot)))
+    return inclusion_files
+
 # TODO: evaluate if we want public models by default
-datas = get_trilogy_lark_file()
+datas = get_trilogy_lark_file() + get_trilogy_stdlib_files()
 binaries = []
 hiddenimports = ['sqlalchemy_bigquery']
 tmp_ret = collect_all('duckdb')
