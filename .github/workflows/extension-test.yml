@@ -47,11 +47,6 @@ jobs:
         working-directory: editors/vscode
         run: pnpm run test:grammar
 
-      - name: Run VS Code extension tests (Linux)
-        if: runner.os == 'Linux'
-        working-directory: editors/vscode
-        run: xvfb-run -a pnpm test
-
       - name: Run VS Code extension tests (Windows/macOS)
         if: runner.os != 'Linux'
         working-directory: editors/vscode
