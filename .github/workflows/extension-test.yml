@@ -52,7 +52,7 @@ jobs:
         working-directory: editors/vscode
         run: xvfb-run -a pnpm run test
 
-      # - name: Run VS Code extension tests (Windows/macOS)
-      #   if: runner.os != 'Linux'
-      #   working-directory: editors/vscode
-      #   run: pnpm run test
+      - name: Run VS Code extension tests (Windows/macOS)
+        if: runner.os != 'Linux'
+        working-directory: editors/vscode
+        run: pnpm run test

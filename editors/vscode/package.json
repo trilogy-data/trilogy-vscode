@@ -125,8 +125,8 @@
 	"main": "./dist/extension.js",
 	"scripts": {
 		"vscode:prepublish": "node include_dependencies.js && node build-backend.js && pnpm run compile && node esbuild.mjs --production && pnpm run icons:svgo && fantasticon",
-		"compile": "tsc -b",
-		"watch": "tsc -b -w",
+		"compile": "pnpm exec tsc -b",
+		"watch": "pnpm exec tsc -b -w",
 		"lint": "eslint \"src/**/*.ts\" --fix",
 		"package": "vsce package --no-dependencies --out trilogy_tools.vsix",
 		"watch:esbuild": "node esbuild.mjs --watch",
@@ -134,7 +134,7 @@
 		"build:icons": "pnpm run icons:svgo && fantasticon",
 		"test:grammar": "vscode-tmgrammar-test \"./src/test/grammar/*.test.preql\"",
 		"test:no-compile": "node ./out/test/runTest.js",
-		"test": "node include_dependencies.js && node build-backend.js && pnpm run compile && node esbuild.mjs && pnpm run icons:svgo && fantasticon && node ./out/test/runTest.js && pnpm test"
+		"test": "node include_dependencies.js && node build-backend.js && pnpm run compile && node esbuild.mjs && pnpm run icons:svgo && fantasticon && node ./out/test/runTest.js"
 	},
 	"dependencies": {
 		"@duckdb/node-api": "1.4.3-r.3",
