@@ -41,7 +41,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: editors/vscode
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --shamefully-hoist --frozen-lockfile
 
       - name: Run grammar tests
         working-directory: editors/vscode
