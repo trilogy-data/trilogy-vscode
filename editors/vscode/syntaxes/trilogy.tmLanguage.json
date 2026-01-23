@@ -80,7 +80,7 @@
 		"concept-declaration": {
 			"name": "meta.function.trilogy",
 			"patterns": [{
-			"begin": "(?x)\n  \\s*\n  \\b(auto|property|metric|key)\\s+\n    (?=\n    [[:alpha:]_][[:word:]]* \\s* [[:alpha:]_][[:word:]]*    )\n",
+			"begin": "(?ix)\n  \\s*\n  \\b(auto|property|metric|key|parameter|param|const|constant|unique)\\s+\n    (?=\n    [[:alpha:]_][[:word:]]* \\s* [[:alpha:]_][[:word:]]*    )\n",
 			"end": "(:|(?=[#'\"\\n]))",
 			"beginCaptures": {
 				"1": {
@@ -107,7 +107,7 @@
 				}
 			]
 		},{
-			"begin": "(?x)\n  \\s*\n  \\b(auto|property|metric|key)\\s+\n    (?=\n    <\\S+>\\.[[:alpha:]_][[:word:]]* \\s* [[:alpha:]_][[:word:]]*    )\n",
+			"begin": "(?ix)\n  \\s*\n  \\b(auto|property|metric|key|parameter|param|const|constant|unique)\\s+\n    (?=\n    <\\S+>\\.[[:alpha:]_][[:word:]]* \\s* [[:alpha:]_][[:word:]]*    )\n",
 			"end": "(;)",
 			"beginCaptures": {
 				"1": {
@@ -145,10 +145,20 @@
 					"end": "\\n",
 					"beginCaptures": {
 						"0": {
-							"name": "punctuation.definition.comment"
+							"name": "punctuation.definition.comment.hash.trilogy"
 						}
 					},
-					"name": "comment.line.hash"
+					"name": "comment.line.hash.trilogy"
+				},
+				{
+					"begin": "//",
+					"end": "\\n",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.comment.double-slash.trilogy"
+						}
+					},
+					"name": "comment.line.double-slash.trilogy"
 				}
 			]
 		},
@@ -289,41 +299,65 @@
 			"patterns": [
 				{
 					"name": "storage.type.function.trilogy",
-					"match": "\\b((async\\s+)?\\s*def)\\b"
-				},
-				{
-					"name": "keyword.control.flow.trilogy",
-					"comment": "if `as` is eventually followed by `:` or line continuation\nit's probably control flow like:\n    with foo as bar, \\\n         Foo as Bar:\n      try:\n        do_stuff()\n      except Exception as e:\n        pass\n",
-					"match": "\\b(?<!\\.)as\\b(?=.*[:\\\\])"
+					"match": "(?i)\\b(def)\\b"
 				},
 				{
 					"name": "keyword.control.import.trilogy",
-					"comment": "other legal use of `as` is in an import",
-					"match": "\\b(?<!\\.)as\\b"
+					"match": "(?i)\\b(?<!\\.)as\\b"
 				},
-								{
+				{
 					"name": "keyword.control.select.trilogy",
-					"match": "(?i)(?x)\n  \\b(?<!\\.)(\n    select  )\\b\n"
+					"match": "(?i)\\b(?<!\\.)(select)\\b"
 				},
 				{
 					"name": "keyword.control.flow.trilogy",
-					"match": "(?i)(?x)\n  \\b(?<!\\.)(\n   raw_sql | async | continue | select | del | assert | persist | into | break | finally | for\n    | from | elif | else | if | except | pass | raise\n    | return | try | while | with | datasource | root\n  )\\b\n"
+					"comment": "Primary query keywords",
+					"match": "(?i)\\b(?<!\\.)(from|where|having|order|limit|by)\\b"
 				},
 				{
-					"name": "storage.modifier.declaration.trilogy",
-					"match": "(?x)\n  \\b(?<!\\.)(\n    global | nonlocal\n  )\\b\n"
+					"name": "keyword.control.flow.trilogy",
+					"comment": "Multi-select and merge keywords",
+					"match": "(?i)\\b(?<!\\.)(merge|align|derive|rowset|with)\\b"
 				},
 				{
-					"name": "storage.type.class.trilogy",
-					"match": "\\b(?<!\\.)(class)\\b"
+					"name": "keyword.control.flow.trilogy",
+					"comment": "Persist and data operation keywords",
+					"match": "(?i)\\b(?<!\\.)(persist|append|overwrite|into|copy|csv|json|parquet)\\b"
 				},
 				{
-					"match": "(?x)\n  ^\\s*(\n    case | match\n  )(?=\\s*([-+\\w\\d(\\[{'\":#]|$))\\b\n",
-					"captures": {
-						"1": {
-							"name": "keyword.control.flow.trilogy"
-						}
-					}
+					"name": "keyword.control.flow.trilogy",
+					"comment": "Datasource keywords",
+					"match": "(?i)\\b(?<!\\.)(datasource|grain|address|query|file|freshness|complete|root|partition|incremental|state|published|unpublished)\\b"
+				},
+				{
+					"name": "keyword.control.flow.trilogy",
+					"comment": "Statement keywords",
+					"match": "(?i)\\b(?<!\\.)(raw_sql|validate|mock|publish|unpublish|create|show|type|drop)\\b"
+				},
+				{
+					"name": "keyword.control.flow.trilogy",
+					"comment": "Chart keywords",
+					"match": "(?i)\\b(?<!\\.)(chart|line|bar|barh|point|area|headline|donut|heatmap|boxplot|treemap|set|x_axis|y_axis|color|size|group|trellis|trellis_row|geo|annotation|hide_legend|show_title|scale_x|scale_y|linear|sqrt)\\b"
+				},
+				{
+					"name": "keyword.control.conditional.trilogy",
+					"comment": "CASE/WHEN conditional keywords",
+					"match": "(?i)\\b(?<!\\.)(case|when|then|else|end)\\b"
+				},
+				{
+					"name": "keyword.control.filter.trilogy",
+					"comment": "Filter and window keywords",
+					"match": "(?i)\\b(?<!\\.)(filter|over)\\b"
+				},
+				{
+					"name": "keyword.other.order.trilogy",
+					"comment": "Ordering keywords",
+					"match": "(?i)\\b(?<!\\.)(asc|desc|nulls|first|last)\\b"
+				},
+				{
+					"name": "storage.type.concept.trilogy",
+					"comment": "Concept declaration types",
+					"match": "(?i)\\b(?<!\\.)(key|metric|property|parameter|param|const|constant|unique)\\b"
 				}
 			]
 		},
@@ -596,24 +630,62 @@
 		},
 		"builtin-types": {
 			"name": "support.type.trilogy",
-			"match": "(?x)\n  (?<!\\.) \\b(\n   string | bool | bytearray | bytes  | float | int | list  |  str | tuple\n  )\\b\n"
+			"match": "(?i)(?<!\\.)\\b(string|number|numeric|int|bigint|date|datetime|timestamp|float|bool|any|struct|list|array|map|tuple)\\b"
 		},
 		"builtin-functions": {
 			"patterns": [
 				{
-					"name": "support.function.builtin.trilogy",
-					"match": "(?x)\n  (?<!\\.) \\b(\n  abs | all | any  |  divmod | where | filter | format | row_number |  hash | id |  len\n    | max |  min | avg | pow   |  round | order | sum | count  )\\b\n"
+					"name": "support.function.math.trilogy",
+					"comment": "Mathematical functions",
+					"match": "(?i)(?<!\\.)\\b(add|subtract|multiply|divide|mod|log|round|floor|ceil|abs|sqrt|random)\\b"
+				},
+				{
+					"name": "support.function.string.trilogy",
+					"comment": "String functions",
+					"match": "(?i)(?<!\\.)\\b(like|ilike|upper|lower|split|strpos|substring|contains|trim|replace|regexp_extract|regexp_contains|regexp_replace|hash|concat)\\b"
+				},
+				{
+					"name": "support.function.array.trilogy",
+					"comment": "Array functions",
+					"match": "(?i)(?<!\\.)\\b(array_sum|array_distinct|array_to_string|array_sort|array_transform|array_filter|generate_array|unnest|union|array_agg)\\b"
+				},
+				{
+					"name": "support.function.map.trilogy",
+					"comment": "Map functions",
+					"match": "(?i)(?<!\\.)\\b(map_keys|map_values)\\b"
+				},
+				{
+					"name": "support.function.generic.trilogy",
+					"comment": "Generic functions",
+					"match": "(?i)(?<!\\.)\\b(cast|coalesce|nullif|len|bool|getattr|recurse_edge)\\b"
+				},
+				{
+					"name": "support.function.aggregate.trilogy",
+					"comment": "Aggregate functions",
+					"match": "(?i)(?<!\\.)\\b(count|count_distinct|sum|avg|max|min|bool_and|bool_or|any)\\b"
+				},
+				{
+					"name": "support.function.date.trilogy",
+					"comment": "Date/time functions",
+					"match": "(?i)(?<!\\.)\\b(date|datetime|timestamp|second|minute|hour|day|day_name|day_of_week|week|month|month_name|quarter|year|format_time|parse_time|date_trunc|date_truncate|date_part|date_add|date_sub|date_diff|date_spine)\\b"
+				},
+				{
+					"name": "support.function.constant.trilogy",
+					"comment": "Constant functions",
+					"match": "(?i)(?<!\\.)\\b(current_date|current_datetime|current_timestamp)\\b"
+				},
+				{
+					"name": "support.function.window.trilogy",
+					"comment": "Window functions",
+					"match": "(?i)(?<!\\.)\\b(row_number|rank|lag|lead)\\b"
 				}
 			]
 		},
 		"illegal-names": {
-			"match": "(?x)\n  \\b(?:\n    (\n      and |  def\n   | del | elif | where | else | for | from |  if | in | is  |  not | or   ) | (\n      as | import\n    )\n  )\\b\n",
+			"match": "(?i)\\b(and|or|not|in|is|def|where|else|for|from|if|as|import|select|persist|merge|datasource|key|metric|property|const|auto)\\b",
 			"captures": {
 				"1": {
 					"name": "keyword.control.flow.trilogy"
-				},
-				"2": {
-					"name": "keyword.control.import.trilogy"
 				}
 			}
 		},
@@ -825,7 +897,7 @@
 			"patterns": [
 				{
 					"name": "constant.language.trilogy",
-					"match": "\\b(True|False|None|NotImplemented|Ellipsis)\\b"
+					"match": "(?i)\\b(true|false|null)\\b"
 				},
 				{
 					"include": "#number"
@@ -850,27 +922,25 @@
 			]
 		},
 		"operator": {
-			"match": "(?x)\n    \\b(?<!\\.)\n      (?:\n        (and | or | not | in | is)                         (?# 1)\n        |\n        (for | if | else | await | (?:yield(?:\\s+from)?))  (?# 2)\n      )\n    (?!\\s*:)\\b\n\n    | (<< | >> | & | \\| | \\^ | ~)                          (?# 3)\n\n    | (\\*\\* | \\* | \\+ | - | % | // | / | @)                (?# 4)\n\n    | (!= | == | >= | <= | < | >)                          (?# 5)\n\n    | (:=)                                                 (?# 6)\n",
-			"captures": {
-				"1": {
-					"name": "keyword.operator.logical.trilogy"
+			"patterns": [
+				{
+					"name": "keyword.operator.logical.trilogy",
+					"match": "(?i)\\b(and|or|not|in|is|between|like|ilike)\\b"
 				},
-				"2": {
-					"name": "keyword.control.flow.trilogy"
+				{
+					"name": "keyword.operator.assignment.trilogy",
+					"comment": "Arrow assignment operators",
+					"match": "<-|->|::"
 				},
-				"3": {
-					"name": "keyword.operator.bitwise.trilogy"
+				{
+					"name": "keyword.operator.arithmetic.trilogy",
+					"match": "\\*\\*|\\*|\\+|-|%|/|\\|\\|"
 				},
-				"4": {
-					"name": "keyword.operator.arithmetic.trilogy"
-				},
-				"5": {
-					"name": "keyword.operator.comparison.trilogy"
-				},
-				"6": {
-					"name": "keyword.operator.assignment.trilogy"
+				{
+					"name": "keyword.operator.comparison.trilogy",
+					"match": "!=|==|>=|<=|<>|<|>|="
 				}
-			}
+			]
 		},
 		"round-braces": {
 			"begin": "\\(",
@@ -899,6 +969,15 @@
 				},
 				{
 					"include": "#string"
+				},
+				{
+					"include": "#lambda-transform"
+				},
+				{
+					"include": "#hash-type"
+				},
+				{
+					"include": "#date-part"
 				},
 				{
 					"include": "#illegal-operator"
@@ -949,6 +1028,21 @@
 					"match": ","
 				}
 			]
+		},
+		"lambda-transform": {
+			"comment": "Lambda transform syntax @identifier used in array_transform and array_filter",
+			"name": "variable.parameter.lambda.trilogy",
+			"match": "@[[:alpha:]_][[:word:]]*"
+		},
+		"hash-type": {
+			"comment": "Hash algorithm types",
+			"name": "constant.other.hash-type.trilogy",
+			"match": "(?i)\\b(md5|sha1|sha256|sha512)\\b"
+		},
+		"date-part": {
+			"comment": "Date part constants used in date functions",
+			"name": "constant.other.date-part.trilogy",
+			"match": "(?i)\\b(DAY|WEEK|MONTH|QUARTER|YEAR|MINUTE|HOUR|SECOND|DAY_OF_WEEK)\\b"
 		},
 		"odd-function-call": {
 			"comment": "A bit obscured function call where there may have been an\narbitrary number of other operations to get the function.\nE.g. \"arr[idx](args)\"\n",
