@@ -1,0 +1,37 @@
+# SYNTAX TEST "source.trilogy" "data types syntax highlighting"
+
+# Test: Basic data types (those that don't overlap with functions)
+STRING
+# <-----  support.type.trilogy
+NUMBER
+# <-----  support.type.trilogy
+NUMERIC
+# <------  support.type.trilogy
+INT
+# <--  support.type.trilogy
+BIGINT
+# <-----  support.type.trilogy
+FLOAT
+# <----  support.type.trilogy
+
+# Test: Complex data types
+STRUCT
+# <-----  support.type.trilogy
+LIST
+# <---  support.type.trilogy
+ARRAY
+# <----  support.type.trilogy
+MAP
+# <--  support.type.trilogy
+TUPLE
+# <----  support.type.trilogy
+
+# Test: Case insensitivity
+string
+# <-----  support.type.trilogy
+int
+# <--  support.type.trilogy
+float
+# <----  support.type.trilogy
+bigint
+# <-----  support.type.trilogy

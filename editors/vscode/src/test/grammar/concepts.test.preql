@@ -1,0 +1,29 @@
+# SYNTAX TEST "source.trilogy" "concept types syntax highlighting"
+
+# Test: Concept declaration types (standalone)
+KEY
+# <--  storage.type.concept.trilogy
+METRIC
+# <-----  storage.type.concept.trilogy
+PROPERTY
+# <-------  storage.type.concept.trilogy
+PARAMETER
+# <--------  storage.type.concept.trilogy
+PARAM
+# <----  storage.type.concept.trilogy
+CONST
+# <----  storage.type.concept.trilogy
+CONSTANT
+# <-------  storage.type.concept.trilogy
+UNIQUE
+# <-----  storage.type.concept.trilogy
+
+# Test: Case insensitivity
+key
+# <--  storage.type.concept.trilogy
+metric
+# <-----  storage.type.concept.trilogy
+property
+# <-------  storage.type.concept.trilogy
+const
+# <----  storage.type.concept.trilogy

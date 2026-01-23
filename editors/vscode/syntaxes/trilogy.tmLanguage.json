@@ -303,7 +303,7 @@
 				},
 				{
 					"name": "keyword.control.import.trilogy",
-					"match": "(?i)\\b(?<!\\.)as\\b"
+					"match": "(?i)\\b(?<!\\.)(as|import)\\b"
 				},
 				{
 					"name": "keyword.control.select.trilogy",
@@ -337,7 +337,7 @@
 				{
 					"name": "keyword.control.flow.trilogy",
 					"comment": "Chart keywords",
-					"match": "(?i)\\b(?<!\\.)(chart|line|bar|barh|point|area|headline|donut|heatmap|boxplot|treemap|set|x_axis|y_axis|color|size|group|trellis|trellis_row|geo|annotation|hide_legend|show_title|scale_x|scale_y|linear|sqrt)\\b"
+					"match": "(?i)\\b(?<!\\.)(chart|line|bar|barh|point|area|headline|donut|heatmap|boxplot|treemap|set|x_axis|y_axis|color|size|group|trellis|trellis_row|geo|annotation|hide_legend|show_title|scale_x|scale_y|linear)\\b"
 				},
 				{
 					"name": "keyword.control.conditional.trilogy",
@@ -908,11 +908,7 @@
 			"patterns": [
 				{
 					"name": "invalid.illegal.operator.trilogy",
-					"match": "&&|\\|\\||--|\\+\\+"
-				},
-				{
-					"name": "invalid.illegal.operator.trilogy",
-					"match": "[?$]"
+					"match": "&&|--|\\+\\+"
 				},
 				{
 					"name": "invalid.illegal.operator.trilogy",

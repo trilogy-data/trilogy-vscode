@@ -1,0 +1,7 @@
+# SYNTAX TEST "source.trilogy" "comments syntax highlighting"
+
+# This is a hash comment
+# <----------------------  comment.line.hash.trilogy
+
+// This is a double-slash comment
+# <-----------------------------  comment.line.double-slash.trilogy
