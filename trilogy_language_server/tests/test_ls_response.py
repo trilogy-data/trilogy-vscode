@@ -36,6 +36,7 @@ from lsprotocol.types import (
     DocumentFormattingParams,
     MessageType,
     HoverParams,
+    TextEdit,
 )
 
 TEST_TEXT = """select 1-> test;"""
@@ -134,6 +135,11 @@ class TestFeatureFunctions:
         server.workspace = Mock()
         server.window_log_message = Mock()
         server.window_show_message = Mock()
+        # Add required storage attributes
+        server.concept_info = {}
+        server.concept_locations = {}
+        server.datasource_info = {}
+        server.import_info = {}
         return server
 
     @pytest.fixture
@@ -145,7 +151,7 @@ class TestFeatureFunctions:
         return doc
 
     def test_format_document(self, mock_server, mock_document):
-        """Test the format_document function."""
+        """Test the format_document function returns List[TextEdit]."""
         # Setup mocks
         mock_server.workspace.get_text_document.return_value = mock_document
 
@@ -162,12 +168,60 @@ class TestFeatureFunctions:
         mock_server.workspace.get_text_document.assert_called_once_with(
             "file:///test/example.trilogy"
         )
-        assert (
-            result
-            == """SELECT
+
+        # Result should be a list of TextEdit objects
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert isinstance(result[0], TextEdit)
+
+        # The TextEdit should replace the entire document
+        assert result[0].range.start.line == 0
+        assert result[0].range.start.character == 0
+
+        # The new_text should contain the formatted content
+        expected_text = """SELECT
     1 -> test,
 ;"""
+        assert result[0].new_text == expected_text
+
+    def test_format_document_returns_correct_range(self, mock_server):
+        """Test that format_document returns TextEdit with correct end range."""
+        # Setup a multi-line document
+        mock_document = Mock()
+        mock_document.source = "SELECT 1 as a;\nSELECT 2 as b;"
+        mock_server.workspace.get_text_document.return_value = mock_document
+
+        params = DocumentFormattingParams(
+            text_document=TextDocumentIdentifier(uri="file:///test/example.trilogy"),
+            options=Mock(),
         )
+
+        result = format_document(mock_server, params)
+
+        # Should return a TextEdit covering the entire document
+        assert result is not None
+        assert len(result) == 1
+        # End line should be 1 (0-indexed, original has 2 lines)
+        assert result[0].range.end.line == 1
+        # End character should be length of last line
+        assert result[0].range.end.character == len("SELECT 2 as b;")
+
+    def test_format_document_handles_parse_error(self, mock_server):
+        """Test that format_document returns None on parse errors."""
+        mock_document = Mock()
+        mock_document.source = "INVALID SYNTAX {{{{{"
+        mock_server.workspace.get_text_document.return_value = mock_document
+
+        params = DocumentFormattingParams(
+            text_document=TextDocumentIdentifier(uri="file:///test/example.trilogy"),
+            options=Mock(),
+        )
+
+        result = format_document(mock_server, params)
+
+        # Should return None on error
+        assert result is None
 
     def test_completions_with_params(self, mock_server):
         """Test the completions function with parameters."""
@@ -180,7 +234,13 @@ class TestFeatureFunctions:
 
         mock_server.window_log_message.assert_called_once()
         assert result.is_incomplete is False
-        assert len(result.items) == 0
+        # Should have keywords and functions in the completion list
+        assert len(result.items) > 0
+        # Check that keywords are present
+        labels = [item.label for item in result.items]
+        assert "select" in labels
+        assert "key" in labels
+        assert "count" in labels  # Function
 
     def test_completions_without_params(self, mock_server):
         """Test the completions function without parameters."""
@@ -272,6 +332,10 @@ class TestFeatureFunctions:
         """Test the hover function with concept information."""
         uri = "file:///test/example.trilogy"
 
+        # Setup datasource and import info (empty for this test)
+        mock_server.datasource_info = {uri: []}
+        mock_server.import_info = {uri: []}
+
         # Setup concept locations
         mock_server.concept_locations = {
             uri: [
@@ -315,6 +379,10 @@ class TestFeatureFunctions:
     def test_hover_no_concept_at_position(self, mock_server):
         """Test the hover function when no concept is at cursor position."""
         uri = "file:///test/example.trilogy"
+
+        # Setup datasource and import info (empty for this test)
+        mock_server.datasource_info = {uri: []}
+        mock_server.import_info = {uri: []}
 
         # Setup empty concept locations
         mock_server.concept_locations = {uri: []}
@@ -420,10 +488,14 @@ class TestNestedImportFormatting:
         # is now correctly set to the nested directory where base.preql exists
         result = format_document(mock_server, params)
 
-        # Verify formatting succeeded and contains the import statement
+        # Verify formatting succeeded and returns List[TextEdit]
         assert result is not None
-        assert "import base as base" in result
-        assert "base.x" in result
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert isinstance(result[0], TextEdit)
+        # Check the formatted text contains the import statement
+        assert "import base as base" in result[0].new_text
+        assert "base.x" in result[0].new_text
 
     def test_format_document_with_nested_import_resolves_correctly(
         self, mock_server, nested_fixtures_path
@@ -450,9 +522,13 @@ class TestNestedImportFormatting:
         # This should succeed because base.preql is in the same directory
         result = format_document(mock_server, params)
 
-        # The formatted result should include the import and the selection
-        assert "import" in result
-        assert "SELECT" in result
+        # The formatted result should be a List[TextEdit]
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 1
+        # The formatted text should include the import and the selection
+        assert "import" in result[0].new_text
+        assert "SELECT" in result[0].new_text
 
     def test_format_document_with_invalid_uri_handles_gracefully(self, mock_server):
         """Test that format_document handles non-file URIs gracefully.
@@ -473,9 +549,12 @@ class TestNestedImportFormatting:
         # This should not raise an error
         result = format_document(mock_server, params)
 
-        # Basic formatting should still work
+        # Basic formatting should still work and return List[TextEdit]
         assert result is not None
-        assert "SELECT" in result
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert isinstance(result[0], TextEdit)
+        assert "SELECT" in result[0].new_text
 
     def test_format_document_preserves_import_when_wrong_working_path(
         self, mock_server
@@ -504,6 +583,10 @@ class TestNestedImportFormatting:
         # With the fix, this should resolve the import correctly
         result = format_document(mock_server, params)
 
+        # Result should be List[TextEdit]
         assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert isinstance(result[0], TextEdit)
         # The formatted output should contain the import
-        assert "import base as base" in result
+        assert "import base as base" in result[0].new_text

@@ -1,4 +1,9 @@
-from trilogy_language_server.models import Token, TokenModifier, ConceptInfo
+from trilogy_language_server.models import (
+    Token,
+    TokenModifier,
+    ConceptInfo,
+    ConceptLocation,
+)
 from trilogy_language_server.parsing import (
     tree_to_symbols,
     gen_tree,
@@ -303,3 +308,208 @@ def test_format_concept_hover_with_lineage():
     assert "**metric**" in hover_text
     assert "**Derivation:**" in hover_text
     assert "count" in hover_text
+
+
+# Tests for new IDE features
+
+
+def test_get_definition_locations():
+    """Test finding definition locations for a concept"""
+    from trilogy_language_server.parsing import get_definition_locations
+
+    locations = [
+        ConceptLocation(
+            concept_address="local.user_id",
+            start_line=1,
+            start_column=5,
+            end_line=1,
+            end_column=12,
+            is_definition=True,
+        ),
+        ConceptLocation(
+            concept_address="local.user_id",
+            start_line=3,
+            start_column=8,
+            end_line=3,
+            end_column=15,
+            is_definition=False,
+        ),
+        ConceptLocation(
+            concept_address="local.name",
+            start_line=2,
+            start_column=10,
+            end_line=2,
+            end_column=14,
+            is_definition=True,
+        ),
+    ]
+
+    # Find definition for user_id
+    defs = get_definition_locations(locations, "local.user_id")
+    assert len(defs) == 1
+    assert defs[0].start_line == 1
+    assert defs[0].is_definition is True
+
+    # Find definition for non-existent concept
+    defs = get_definition_locations(locations, "local.nonexistent")
+    assert len(defs) == 0
+
+
+def test_extract_datasource_info():
+    """Test extracting datasource information from parse tree"""
+    from trilogy_language_server.parsing import extract_datasource_info
+
+    code = """key user_id int;
+
+datasource users (
+    user_id
+)
+grain (user_id)
+address users_table;
+"""
+    tree = gen_tree(code)
+    datasources = extract_datasource_info(tree)
+
+    # Should find the datasource
+    assert len(datasources) >= 1
+
+
+def test_extract_import_info():
+    """Test extracting import information from parse tree"""
+    from trilogy_language_server.parsing import extract_import_info
+
+    code = """import base as b;
+
+select b.user_id;
+"""
+    tree = gen_tree(code)
+    imports = extract_import_info(tree)
+
+    assert len(imports) >= 1
+
+
+def test_format_datasource_hover():
+    """Test formatting datasource info for hover display"""
+    from trilogy_language_server.parsing import format_datasource_hover
+    from trilogy_language_server.models import DatasourceInfo
+
+    ds = DatasourceInfo(
+        name="users",
+        address="users_table",
+        columns=["user_id", "name", "email"],
+        grain=["user_id"],
+        start_line=3,
+        start_column=1,
+        end_line=7,
+        end_column=20,
+        is_root=False,
+    )
+
+    hover_text = format_datasource_hover(ds)
+
+    assert "**datasource**" in hover_text
+    assert "`users`" in hover_text
+    assert "`users_table`" in hover_text
+    assert "`user_id`" in hover_text
+
+
+def test_format_import_hover():
+    """Test formatting import info for hover display"""
+    from trilogy_language_server.parsing import format_import_hover
+    from trilogy_language_server.models import ImportInfo
+
+    imp = ImportInfo(
+        path="base",
+        alias="b",
+        start_line=1,
+        start_column=1,
+        end_line=1,
+        end_column=18,
+    )
+
+    hover_text = format_import_hover(imp)
+
+    assert "**import statement**" in hover_text
+    assert "`base`" in hover_text
+    assert "`b`" in hover_text
+
+
+def test_get_document_symbols():
+    """Test generating document symbols for outline"""
+    from trilogy_language_server.parsing import get_document_symbols
+    from trilogy_language_server.models import DatasourceInfo, ImportInfo
+
+    locations = [
+        ConceptLocation(
+            concept_address="local.user_id",
+            start_line=1,
+            start_column=5,
+            end_line=1,
+            end_column=12,
+            is_definition=True,
+        ),
+    ]
+
+    concept_info_map = {
+        "local.user_id": ConceptInfo(
+            name="user_id",
+            address="local.user_id",
+            datatype="INTEGER",
+            purpose="key",
+            namespace="local",
+            line_number=1,
+        )
+    }
+
+    datasources = [
+        DatasourceInfo(
+            name="users",
+            address="users_table",
+            columns=["user_id"],
+            grain=["user_id"],
+            start_line=3,
+            start_column=1,
+            end_line=7,
+            end_column=20,
+            is_root=False,
+        )
+    ]
+
+    imports = [
+        ImportInfo(
+            path="base",
+            alias="b",
+            start_line=9,
+            start_column=1,
+            end_line=9,
+            end_column=18,
+        )
+    ]
+
+    symbols = get_document_symbols(locations, concept_info_map, datasources, imports)
+
+    # Should have concept, datasource, and import symbols
+    assert len(symbols) == 3
+    symbol_names = [s.name for s in symbols]
+    assert "user_id" in symbol_names
+    assert "users" in symbol_names
+    assert "b" in symbol_names
+
+
+def test_trilogy_functions():
+    """Test that TRILOGY_FUNCTIONS dictionary is properly populated"""
+    from trilogy_language_server.parsing import TRILOGY_FUNCTIONS
+
+    # Check that common functions are present
+    assert "count" in TRILOGY_FUNCTIONS
+    assert "sum" in TRILOGY_FUNCTIONS
+    assert "avg" in TRILOGY_FUNCTIONS
+    assert "min" in TRILOGY_FUNCTIONS
+    assert "max" in TRILOGY_FUNCTIONS
+
+    # Check structure
+    count_info = TRILOGY_FUNCTIONS["count"]
+    assert "signature" in count_info
+    assert "description" in count_info
+    assert "parameters" in count_info
+    assert len(count_info["parameters"]) > 0
