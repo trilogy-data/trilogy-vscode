@@ -1,0 +1,159 @@
+# SYNTAX TEST "source.trilogy" "keywords syntax highlighting"
+
+# Test: Query keywords
+SELECT
+# <-----  keyword.control.select.trilogy
+FROM
+# <---  keyword.control.flow.trilogy
+WHERE
+# <----  keyword.control.flow.trilogy
+HAVING
+# <-----  keyword.control.flow.trilogy
+ORDER
+# <----  keyword.control.flow.trilogy
+LIMIT
+# <----  keyword.control.flow.trilogy
+BY
+# <-  keyword.control.flow.trilogy
+
+# Test: Multi-select keywords
+MERGE
+# <----  keyword.control.flow.trilogy
+ALIGN
+# <----  keyword.control.flow.trilogy
+DERIVE
+# <-----  keyword.control.flow.trilogy
+ROWSET
+# <-----  keyword.control.flow.trilogy
+WITH
+# <---  keyword.control.flow.trilogy
+
+# Test: Persist and data operation keywords
+PERSIST
+# <------  keyword.control.flow.trilogy
+APPEND
+# <-----  keyword.control.flow.trilogy
+OVERWRITE
+# <--------  keyword.control.flow.trilogy
+INTO
+# <---  keyword.control.flow.trilogy
+COPY
+# <---  keyword.control.flow.trilogy
+CSV
+# <--  keyword.control.flow.trilogy
+JSON
+# <---  keyword.control.flow.trilogy
+PARQUET
+# <------  keyword.control.flow.trilogy
+
+# Test: Datasource keywords
+datasource
+# <---------  keyword.control.flow.trilogy
+GRAIN
+# <----  keyword.control.flow.trilogy
+ADDRESS
+# <------  keyword.control.flow.trilogy
+QUERY
+# <----  keyword.control.flow.trilogy
+FILE
+# <---  keyword.control.flow.trilogy
+FRESHNESS
+# <--------  keyword.control.flow.trilogy
+COMPLETE
+# <-------  keyword.control.flow.trilogy
+ROOT
+# <---  keyword.control.flow.trilogy
+PARTITION
+# <--------  keyword.control.flow.trilogy
+INCREMENTAL
+# <----------  keyword.control.flow.trilogy
+STATE
+# <----  keyword.control.flow.trilogy
+PUBLISHED
+# <--------  keyword.control.flow.trilogy
+UNPUBLISHED
+# <----------  keyword.control.flow.trilogy
+
+# Test: Statement keywords
+RAW_SQL
+# <------  keyword.control.flow.trilogy
+VALIDATE
+# <-------  keyword.control.flow.trilogy
+MOCK
+# <---  keyword.control.flow.trilogy
+PUBLISH
+# <------  keyword.control.flow.trilogy
+UNPUBLISH
+# <--------  keyword.control.flow.trilogy
+CREATE
+# <-----  keyword.control.flow.trilogy
+SHOW
+# <---  keyword.control.flow.trilogy
+TYPE
+# <---  keyword.control.flow.trilogy
+DROP
+# <---  keyword.control.flow.trilogy
+
+# Test: Chart keywords
+CHART
+# <----  keyword.control.flow.trilogy
+LINE
+# <---  keyword.control.flow.trilogy
+BAR
+# <--  keyword.control.flow.trilogy
+BARH
+# <---  keyword.control.flow.trilogy
+POINT
+# <----  keyword.control.flow.trilogy
+AREA
+# <---  keyword.control.flow.trilogy
+HEADLINE
+# <-------  keyword.control.flow.trilogy
+DONUT
+# <----  keyword.control.flow.trilogy
+HEATMAP
+# <------  keyword.control.flow.trilogy
+BOXPLOT
+# <------  keyword.control.flow.trilogy
+TREEMAP
+# <------  keyword.control.flow.trilogy
+
+# Test: CASE/WHEN conditional keywords
+CASE
+# <---  keyword.control.conditional.trilogy
+WHEN
+# <---  keyword.control.conditional.trilogy
+THEN
+# <---  keyword.control.conditional.trilogy
+ELSE
+# <---  keyword.control.conditional.trilogy
+END
+# <--  keyword.control.conditional.trilogy
+
+# Test: Filter and window keywords
+FILTER
+# <-----  keyword.control.filter.trilogy
+OVER
+# <---  keyword.control.filter.trilogy
+
+# Test: Ordering keywords
+ASC
+# <--  keyword.other.order.trilogy
+DESC
+# <---  keyword.other.order.trilogy
+NULLS
+# <----  keyword.other.order.trilogy
+FIRST
+# <----  keyword.other.order.trilogy
+LAST
+# <---  keyword.other.order.trilogy
+
+# Test: Import keywords
+IMPORT
+# <-----  keyword.control.import.trilogy
+AS
+# <-  keyword.control.import.trilogy
+
+# Test: Function definition
+DEF
+# <--  storage.type.function.trilogy

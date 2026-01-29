@@ -1,0 +1,79 @@
+# SYNTAX TEST "source.trilogy" "literals and special syntax highlighting"
+
+# Test: Boolean literals
+TRUE
+# <---  constant.language.trilogy
+FALSE
+# <----  constant.language.trilogy
+true
+# <---  constant.language.trilogy
+false
+# <----  constant.language.trilogy
+True
+# <---  constant.language.trilogy
+False
+# <----  constant.language.trilogy
+
+# Test: Null literal
+NULL
+# <---  constant.language.trilogy
+null
+# <---  constant.language.trilogy
+Null
+# <---  constant.language.trilogy
+
+# Test: Lambda transform syntax
+@item
+# <---  variable.parameter.lambda.trilogy
+@element
+# <------  variable.parameter.lambda.trilogy
+@x
+# <-  variable.parameter.lambda.trilogy
+
+# Test: Hash types
+MD5
+# <--  constant.other.hash-type.trilogy
+SHA1
+# <---  constant.other.hash-type.trilogy
+SHA256
+# <-----  constant.other.hash-type.trilogy
+SHA512
+# <-----  constant.other.hash-type.trilogy
+md5
+# <--  constant.other.hash-type.trilogy
+sha256
+# <-----  constant.other.hash-type.trilogy
+
+# Test: Date parts
+DAY
+# <--  constant.other.date-part.trilogy
+WEEK
+# <---  constant.other.date-part.trilogy
+MONTH
+# <----  constant.other.date-part.trilogy
+QUARTER
+# <------  constant.other.date-part.trilogy
+YEAR
+# <---  constant.other.date-part.trilogy
+MINUTE
+# <-----  constant.other.date-part.trilogy
+HOUR
+# <---  constant.other.date-part.trilogy
+SECOND
+# <-----  constant.other.date-part.trilogy
+DAY_OF_WEEK
+# <----------  constant.other.date-part.trilogy
+
+# Test: Numeric literals
+123
+# <--  constant.numeric.dec.trilogy
+3.14
+# <---  constant.numeric.float.trilogy
+42
+# <-  constant.numeric.dec.trilogy
+
+# Test: String literals
+"hello world"
+# <----------  string.quoted.single.trilogy
+'single quoted'
+# <------------  string.quoted.single.trilogy

@@ -1,0 +1,145 @@
+# SYNTAX TEST "source.trilogy" "functions syntax highlighting"
+
+# Test: Mathematical functions
+ABS
+# <--  support.function.math.trilogy
+SQRT
+# <---  support.function.math.trilogy
+ROUND
+# <----  support.function.math.trilogy
+FLOOR
+# <----  support.function.math.trilogy
+CEIL
+# <---  support.function.math.trilogy
+LOG
+# <--  support.function.math.trilogy
+MOD
+# <--  support.function.math.trilogy
+RANDOM
+# <-----  support.function.math.trilogy
+
+# Test: String functions
+UPPER
+# <----  support.function.string.trilogy
+LOWER
+# <----  support.function.string.trilogy
+SPLIT
+# <----  support.function.string.trilogy
+STRPOS
+# <-----  support.function.string.trilogy
+SUBSTRING
+# <--------  support.function.string.trilogy
+CONTAINS
+# <-------  support.function.string.trilogy
+TRIM
+# <---  support.function.string.trilogy
+REPLACE
+# <------  support.function.string.trilogy
+CONCAT
+# <-----  support.function.string.trilogy
+REGEXP_EXTRACT
+# <------------  support.function.string.trilogy
+REGEXP_CONTAINS
+# <-------------  support.function.string.trilogy
+REGEXP_REPLACE
+# <------------  support.function.string.trilogy
+HASH
+# <---  support.function.string.trilogy
+
+# Test: Array functions
+ARRAY_SUM
+# <--------  support.function.array.trilogy
+ARRAY_DISTINCT
+# <-------------  support.function.array.trilogy
+ARRAY_TO_STRING
+# <--------------  support.function.array.trilogy
+ARRAY_SORT
+# <---------  support.function.array.trilogy
+ARRAY_TRANSFORM
+# <--------------  support.function.array.trilogy
+ARRAY_FILTER
+# <-----------  support.function.array.trilogy
+GENERATE_ARRAY
+# <-------------  support.function.array.trilogy
+UNNEST
+# <-----  support.function.array.trilogy
+UNION
+# <----  support.function.array.trilogy
+ARRAY_AGG
+# <--------  support.function.array.trilogy
+
+# Test: Map functions
+MAP_KEYS
+# <-------  support.function.map.trilogy
+MAP_VALUES
+# <---------  support.function.map.trilogy
+
+# Test: Generic functions
+CAST
+# <---  support.function.generic.trilogy
+COALESCE
+# <-------  support.function.generic.trilogy
+NULLIF
+# <-----  support.function.generic.trilogy
+LEN
+# <--  support.function.generic.trilogy
+
+# Test: Aggregate functions
+COUNT
+# <----  support.function.aggregate.trilogy
+COUNT_DISTINCT
+# <-------------  support.function.aggregate.trilogy
+SUM
+# <--  support.function.aggregate.trilogy
+AVG
+# <--  support.function.aggregate.trilogy
+MAX
+# <--  support.function.aggregate.trilogy
+MIN
+# <--  support.function.aggregate.trilogy
+BOOL_AND
+# <-------  support.function.aggregate.trilogy
+BOOL_OR
+# <------  support.function.aggregate.trilogy
+
+# Test: Date/time functions (those that don't overlap with date parts)
+DAY_NAME
+# <-------  support.function.date.trilogy
+MONTH_NAME
+# <---------  support.function.date.trilogy
+FORMAT_TIME
+# <----------  support.function.date.trilogy
+PARSE_TIME
+# <---------  support.function.date.trilogy
+DATE_TRUNC
+# <---------  support.function.date.trilogy
+DATE_TRUNCATE
+# <------------  support.function.date.trilogy
+DATE_PART
+# <--------  support.function.date.trilogy
+DATE_ADD
+# <-------  support.function.date.trilogy
+DATE_SUB
+# <-------  support.function.date.trilogy
+DATE_DIFF
+# <--------  support.function.date.trilogy
+DATE_SPINE
+# <---------  support.function.date.trilogy
+
+# Test: Constant functions
+CURRENT_DATE
+# <-----------  support.function.constant.trilogy
+CURRENT_DATETIME
+# <---------------  support.function.constant.trilogy
+CURRENT_TIMESTAMP
+# <----------------  support.function.constant.trilogy
+
+# Test: Window functions
+ROW_NUMBER
+# <---------  support.function.window.trilogy
+RANK
+# <---  support.function.window.trilogy
+LAG
+# <--  support.function.window.trilogy
+LEAD
+# <---  support.function.window.trilogy

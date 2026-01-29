@@ -1,0 +1,57 @@
+# SYNTAX TEST "source.trilogy" "operators syntax highlighting"
+
+# Test: Logical operators
+AND
+# <--  keyword.operator.logical.trilogy
+OR
+# <-  keyword.operator.logical.trilogy
+NOT
+# <--  keyword.operator.logical.trilogy
+IN
+# <-  keyword.operator.logical.trilogy
+IS
+# <-  keyword.operator.logical.trilogy
+BETWEEN
+# <------  keyword.operator.logical.trilogy
+LIKE
+# <---  keyword.operator.logical.trilogy
+ILIKE
+# <----  keyword.operator.logical.trilogy
+
+# Test: Assignment operators
+<-
+# <-  keyword.operator.assignment.trilogy
+->
+# <-  keyword.operator.assignment.trilogy
+::
+# <-  keyword.operator.assignment.trilogy
+
+# Test: Arithmetic operators
+x + y
+# ^ keyword.operator.arithmetic.trilogy
+x - y
+# ^ keyword.operator.arithmetic.trilogy
+x * y
+# ^ keyword.operator.arithmetic.trilogy
+x / y
+# ^ keyword.operator.arithmetic.trilogy
+x % y
+# ^ keyword.operator.arithmetic.trilogy
+x ** y
+# ^^ keyword.operator.arithmetic.trilogy
+x || y
+# ^^ keyword.operator.arithmetic.trilogy
+
+# Test: Comparison operators
+x != y
+# ^^ keyword.operator.comparison.trilogy
+x > y
+# ^ keyword.operator.comparison.trilogy
+x < y
+# ^ keyword.operator.comparison.trilogy
+x >= y
+# ^^ keyword.operator.comparison.trilogy
+x <= y
+# ^^ keyword.operator.comparison.trilogy
+x <> y
+# ^^ keyword.operator.comparison.trilogy
