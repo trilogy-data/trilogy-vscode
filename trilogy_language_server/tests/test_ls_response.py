@@ -134,6 +134,11 @@ class TestFeatureFunctions:
         server.workspace = Mock()
         server.window_log_message = Mock()
         server.window_show_message = Mock()
+        # Add required storage attributes
+        server.concept_info = {}
+        server.concept_locations = {}
+        server.datasource_info = {}
+        server.import_info = {}
         return server
 
     @pytest.fixture
@@ -180,7 +185,13 @@ class TestFeatureFunctions:
 
         mock_server.window_log_message.assert_called_once()
         assert result.is_incomplete is False
-        assert len(result.items) == 0
+        # Should have keywords and functions in the completion list
+        assert len(result.items) > 0
+        # Check that keywords are present
+        labels = [item.label for item in result.items]
+        assert "select" in labels
+        assert "key" in labels
+        assert "count" in labels  # Function
 
     def test_completions_without_params(self, mock_server):
         """Test the completions function without parameters."""
@@ -272,6 +283,10 @@ class TestFeatureFunctions:
         """Test the hover function with concept information."""
         uri = "file:///test/example.trilogy"
 
+        # Setup datasource and import info (empty for this test)
+        mock_server.datasource_info = {uri: []}
+        mock_server.import_info = {uri: []}
+
         # Setup concept locations
         mock_server.concept_locations = {
             uri: [
@@ -315,6 +330,10 @@ class TestFeatureFunctions:
     def test_hover_no_concept_at_position(self, mock_server):
         """Test the hover function when no concept is at cursor position."""
         uri = "file:///test/example.trilogy"
+
+        # Setup datasource and import info (empty for this test)
+        mock_server.datasource_info = {uri: []}
+        mock_server.import_info = {uri: []}
 
         # Setup empty concept locations
         mock_server.concept_locations = {uri: []}

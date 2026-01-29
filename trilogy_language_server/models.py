@@ -49,3 +49,28 @@ class ConceptLocation(BaseModel):
     end_line: int
     end_column: int
     is_definition: bool = False
+
+
+class DatasourceInfo(BaseModel):
+    """Information about a datasource for hover tooltips."""
+
+    name: str
+    address: str
+    columns: List[str] = Field(default_factory=list)
+    grain: List[str] = Field(default_factory=list)
+    start_line: int
+    start_column: int
+    end_line: int
+    end_column: int
+    is_root: bool = False
+
+
+class ImportInfo(BaseModel):
+    """Information about an import statement for hover tooltips."""
+
+    path: str
+    alias: Optional[str] = None
+    start_line: int
+    start_column: int
+    end_line: int
+    end_column: int

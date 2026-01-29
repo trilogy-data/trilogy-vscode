@@ -3,11 +3,13 @@ from trilogy_language_server.models import (
     TokenModifier,
     ConceptInfo,
     ConceptLocation,
+    DatasourceInfo,
+    ImportInfo,
 )
 from trilogy.parsing.parse_engine import PARSER
 from lark import ParseTree, Token as LarkToken
 from typing import List, Union, Dict, Optional
-from lsprotocol.types import CodeLens, Range, Position, Command
+from lsprotocol.types import CodeLens, Range, Position, Command, DocumentSymbol, SymbolKind
 from trilogy.parsing.parse_engine import ParseToObjects as ParseToObjects
 from trilogy.core.statements.author import (
     SelectStatement,
@@ -508,3 +510,543 @@ def format_concept_hover(concept: ConceptInfo, is_definition: bool = False) -> s
     lines.append(f"*Full address: `{concept.address}`*")
 
     return "\n".join(lines)
+
+
+def get_definition_locations(
+    locations: List[ConceptLocation], concept_address: str
+) -> List[ConceptLocation]:
+    """
+    Find all definition locations for a given concept address.
+    """
+    definitions = []
+    for loc in locations:
+        if loc.is_definition and loc.concept_address == concept_address:
+            definitions.append(loc)
+    return definitions
+
+
+def extract_datasource_info(tree: ParseTree) -> List[DatasourceInfo]:
+    """
+    Extract datasource information from the parse tree for hover tooltips.
+    """
+    datasources: List[DatasourceInfo] = []
+
+    def walk_tree(node: Union[ParseTree, LarkToken]):
+        if isinstance(node, LarkToken):
+            return
+
+        node_data = getattr(node, "data", None)
+
+        if node_data == "datasource":
+            # Extract datasource information
+            name = ""
+            address = ""
+            columns = []
+            grain = []
+            is_root = False
+            start_line = 1
+            start_column = 1
+            end_line = 1
+            end_column = 1
+
+            for child in node.children:
+                if isinstance(child, LarkToken):
+                    if child.type == "IDENTIFIER" and not name:
+                        name = str(child)
+                        start_line = child.line or 1
+                        start_column = child.column or 1
+                    elif child.type == "IDENTIFIER":
+                        address = str(child)
+                        end_line = child.end_line or child.line or 1
+                        end_column = child.end_column or 100
+                else:
+                    # It's a tree node
+                    child_data = getattr(child, "data", None)
+                    if child_data == "column_list":
+                        for col_child in child.children:
+                            if isinstance(col_child, LarkToken) and col_child.type == "IDENTIFIER":
+                                columns.append(str(col_child))
+                    elif child_data == "grain_clause":
+                        for grain_child in child.children:
+                            if isinstance(grain_child, LarkToken) and grain_child.type == "IDENTIFIER":
+                                grain.append(str(grain_child))
+
+            if name:
+                datasources.append(
+                    DatasourceInfo(
+                        name=name,
+                        address=address or name,
+                        columns=columns,
+                        grain=grain,
+                        start_line=start_line,
+                        start_column=start_column,
+                        end_line=end_line,
+                        end_column=end_column,
+                        is_root=is_root,
+                    )
+                )
+        elif node_data == "root_datasource":
+            # Handle root datasource syntax
+            name = ""
+            address = ""
+            columns = []
+            grain = []
+            start_line = 1
+            start_column = 1
+            end_line = 1
+            end_column = 1
+
+            for child in node.children:
+                if isinstance(child, LarkToken):
+                    if child.type == "IDENTIFIER" and not name:
+                        name = str(child)
+                        start_line = child.line or 1
+                        start_column = child.column or 1
+                    elif child.type == "IDENTIFIER":
+                        address = str(child)
+                        end_line = child.end_line or child.line or 1
+                        end_column = child.end_column or 100
+                else:
+                    # It's a tree node
+                    child_data = getattr(child, "data", None)
+                    if child_data == "column_list":
+                        for col_child in child.children:
+                            if isinstance(col_child, LarkToken) and col_child.type == "IDENTIFIER":
+                                columns.append(str(col_child))
+                    elif child_data == "grain_clause":
+                        for grain_child in child.children:
+                            if isinstance(grain_child, LarkToken) and grain_child.type == "IDENTIFIER":
+                                grain.append(str(grain_child))
+
+            if name:
+                datasources.append(
+                    DatasourceInfo(
+                        name=name,
+                        address=address or name,
+                        columns=columns,
+                        grain=grain,
+                        start_line=start_line,
+                        start_column=start_column,
+                        end_line=end_line,
+                        end_column=end_column,
+                        is_root=True,
+                    )
+                )
+        else:
+            for child in node.children:
+                walk_tree(child)
+
+    walk_tree(tree)
+    return datasources
+
+
+def extract_import_info(tree: ParseTree) -> List[ImportInfo]:
+    """
+    Extract import information from the parse tree for hover tooltips.
+    """
+    imports: List[ImportInfo] = []
+
+    def walk_tree(node: Union[ParseTree, LarkToken]):
+        if isinstance(node, LarkToken):
+            return
+
+        node_data = getattr(node, "data", None)
+
+        if node_data == "import_statement":
+            # Extract import information
+            path = ""
+            alias = None
+            start_line = 1
+            start_column = 1
+            end_line = 1
+            end_column = 1
+
+            for child in node.children:
+                if isinstance(child, LarkToken):
+                    if child.type in ("IDENTIFIER", "DOTTED_NAME", "FILEPATH"):
+                        if not path:
+                            path = str(child)
+                            start_line = child.line or 1
+                            start_column = child.column or 1
+                            end_line = child.end_line or child.line or 1
+                            end_column = child.end_column or 100
+                        else:
+                            # This is the alias
+                            alias = str(child)
+                            end_line = child.end_line or child.line or 1
+                            end_column = child.end_column or 100
+
+            if path:
+                imports.append(
+                    ImportInfo(
+                        path=path,
+                        alias=alias,
+                        start_line=start_line,
+                        start_column=start_column,
+                        end_line=end_line,
+                        end_column=end_column,
+                    )
+                )
+        else:
+            for child in node.children:
+                walk_tree(child)
+
+    walk_tree(tree)
+    return imports
+
+
+def format_datasource_hover(ds: DatasourceInfo) -> str:
+    """
+    Format datasource information as markdown for hover display.
+    """
+    lines = []
+
+    if ds.is_root:
+        lines.append(f"**root datasource** `{ds.name}`")
+    else:
+        lines.append(f"**datasource** `{ds.name}`")
+    lines.append("")
+
+    lines.append(f"**Address:** `{ds.address}`")
+
+    if ds.columns:
+        cols_str = ", ".join(f"`{c}`" for c in ds.columns[:10])
+        if len(ds.columns) > 10:
+            cols_str += f" ... ({len(ds.columns)} total)"
+        lines.append(f"**Columns:** {cols_str}")
+
+    if ds.grain:
+        grain_str = ", ".join(f"`{g}`" for g in ds.grain)
+        lines.append(f"**Grain:** {grain_str}")
+
+    return "\n".join(lines)
+
+
+def format_import_hover(imp: ImportInfo) -> str:
+    """
+    Format import information as markdown for hover display.
+    """
+    lines = []
+
+    lines.append("**import statement**")
+    lines.append("")
+    lines.append(f"**Path:** `{imp.path}`")
+
+    if imp.alias:
+        lines.append(f"**Alias:** `{imp.alias}`")
+        lines.append("")
+        lines.append(f"*Use `{imp.alias}.concept_name` to reference concepts from this import*")
+
+    return "\n".join(lines)
+
+
+def get_document_symbols(
+    locations: List[ConceptLocation],
+    concept_info_map: Dict[str, ConceptInfo],
+    datasources: List[DatasourceInfo],
+    imports: List[ImportInfo],
+) -> List[DocumentSymbol]:
+    """
+    Generate document symbols for the outline/navigation view.
+    """
+    symbols: List[DocumentSymbol] = []
+
+    # Add concept definitions
+    for loc in locations:
+        if not loc.is_definition:
+            continue
+
+        concept = resolve_concept_address(loc.concept_address, concept_info_map)
+        if not concept:
+            continue
+
+        # Determine symbol kind based on purpose
+        kind = SymbolKind.Variable
+        if concept.purpose == "key":
+            kind = SymbolKind.Key
+        elif concept.purpose == "property":
+            kind = SymbolKind.Property
+        elif concept.purpose == "metric":
+            kind = SymbolKind.Number
+        elif concept.purpose == "constant":
+            kind = SymbolKind.Constant
+
+        symbol_range = Range(
+            start=Position(line=loc.start_line - 1, character=loc.start_column - 1),
+            end=Position(line=loc.end_line - 1, character=loc.end_column - 1),
+        )
+
+        symbols.append(
+            DocumentSymbol(
+                name=concept.name,
+                kind=kind,
+                range=symbol_range,
+                selection_range=symbol_range,
+                detail=f"{concept.purpose}: {concept.datatype}",
+            )
+        )
+
+    # Add datasources
+    for ds in datasources:
+        symbol_range = Range(
+            start=Position(line=ds.start_line - 1, character=ds.start_column - 1),
+            end=Position(line=ds.end_line - 1, character=ds.end_column - 1),
+        )
+
+        symbols.append(
+            DocumentSymbol(
+                name=ds.name,
+                kind=SymbolKind.Struct,
+                range=symbol_range,
+                selection_range=symbol_range,
+                detail=f"datasource -> {ds.address}",
+            )
+        )
+
+    # Add imports
+    for imp in imports:
+        symbol_range = Range(
+            start=Position(line=imp.start_line - 1, character=imp.start_column - 1),
+            end=Position(line=imp.end_line - 1, character=imp.end_column - 1),
+        )
+
+        name = imp.alias if imp.alias else imp.path
+        symbols.append(
+            DocumentSymbol(
+                name=name,
+                kind=SymbolKind.Module,
+                range=symbol_range,
+                selection_range=symbol_range,
+                detail=f"import {imp.path}",
+            )
+        )
+
+    # Sort by line number
+    symbols.sort(key=lambda s: s.range.start.line)
+
+    return symbols
+
+
+# Trilogy built-in functions with signature information for signature help
+TRILOGY_FUNCTIONS = {
+    "count": {
+        "signature": "count(concept) -> int",
+        "description": "Count the number of distinct values of a concept.",
+        "parameters": [
+            {"name": "concept", "description": "The concept to count distinct values of"}
+        ],
+    },
+    "sum": {
+        "signature": "sum(concept) -> numeric",
+        "description": "Calculate the sum of all values of a concept.",
+        "parameters": [
+            {"name": "concept", "description": "The numeric concept to sum"}
+        ],
+    },
+    "avg": {
+        "signature": "avg(concept) -> float",
+        "description": "Calculate the average of all values of a concept.",
+        "parameters": [
+            {"name": "concept", "description": "The numeric concept to average"}
+        ],
+    },
+    "min": {
+        "signature": "min(concept) -> value",
+        "description": "Find the minimum value of a concept.",
+        "parameters": [
+            {"name": "concept", "description": "The concept to find the minimum of"}
+        ],
+    },
+    "max": {
+        "signature": "max(concept) -> value",
+        "description": "Find the maximum value of a concept.",
+        "parameters": [
+            {"name": "concept", "description": "The concept to find the maximum of"}
+        ],
+    },
+    "coalesce": {
+        "signature": "coalesce(value1, value2, ...) -> value",
+        "description": "Return the first non-null value from the arguments.",
+        "parameters": [
+            {"name": "value1", "description": "First value to check"},
+            {"name": "value2", "description": "Second value to check (optional)"},
+        ],
+    },
+    "concat": {
+        "signature": "concat(string1, string2, ...) -> string",
+        "description": "Concatenate multiple strings together.",
+        "parameters": [
+            {"name": "string1", "description": "First string"},
+            {"name": "string2", "description": "Second string"},
+        ],
+    },
+    "length": {
+        "signature": "length(string) -> int",
+        "description": "Return the length of a string.",
+        "parameters": [
+            {"name": "string", "description": "The string to measure"}
+        ],
+    },
+    "upper": {
+        "signature": "upper(string) -> string",
+        "description": "Convert a string to uppercase.",
+        "parameters": [
+            {"name": "string", "description": "The string to convert"}
+        ],
+    },
+    "lower": {
+        "signature": "lower(string) -> string",
+        "description": "Convert a string to lowercase.",
+        "parameters": [
+            {"name": "string", "description": "The string to convert"}
+        ],
+    },
+    "trim": {
+        "signature": "trim(string) -> string",
+        "description": "Remove leading and trailing whitespace from a string.",
+        "parameters": [
+            {"name": "string", "description": "The string to trim"}
+        ],
+    },
+    "substring": {
+        "signature": "substring(string, start, length) -> string",
+        "description": "Extract a substring from a string.",
+        "parameters": [
+            {"name": "string", "description": "The source string"},
+            {"name": "start", "description": "Starting position (1-indexed)"},
+            {"name": "length", "description": "Number of characters to extract"},
+        ],
+    },
+    "abs": {
+        "signature": "abs(value) -> numeric",
+        "description": "Return the absolute value of a number.",
+        "parameters": [
+            {"name": "value", "description": "The numeric value"}
+        ],
+    },
+    "round": {
+        "signature": "round(value, decimals?) -> numeric",
+        "description": "Round a number to the specified number of decimal places.",
+        "parameters": [
+            {"name": "value", "description": "The numeric value to round"},
+            {"name": "decimals", "description": "Number of decimal places (default: 0)"},
+        ],
+    },
+    "floor": {
+        "signature": "floor(value) -> int",
+        "description": "Round a number down to the nearest integer.",
+        "parameters": [
+            {"name": "value", "description": "The numeric value"}
+        ],
+    },
+    "ceil": {
+        "signature": "ceil(value) -> int",
+        "description": "Round a number up to the nearest integer.",
+        "parameters": [
+            {"name": "value", "description": "The numeric value"}
+        ],
+    },
+    "date": {
+        "signature": "date(year, month, day) -> date",
+        "description": "Create a date from year, month, and day components.",
+        "parameters": [
+            {"name": "year", "description": "The year"},
+            {"name": "month", "description": "The month (1-12)"},
+            {"name": "day", "description": "The day of the month"},
+        ],
+    },
+    "year": {
+        "signature": "year(date) -> int",
+        "description": "Extract the year from a date.",
+        "parameters": [
+            {"name": "date", "description": "The date to extract from"}
+        ],
+    },
+    "month": {
+        "signature": "month(date) -> int",
+        "description": "Extract the month from a date.",
+        "parameters": [
+            {"name": "date", "description": "The date to extract from"}
+        ],
+    },
+    "day": {
+        "signature": "day(date) -> int",
+        "description": "Extract the day from a date.",
+        "parameters": [
+            {"name": "date", "description": "The date to extract from"}
+        ],
+    },
+    "now": {
+        "signature": "now() -> timestamp",
+        "description": "Return the current timestamp.",
+        "parameters": [],
+    },
+    "today": {
+        "signature": "today() -> date",
+        "description": "Return the current date.",
+        "parameters": [],
+    },
+    "cast": {
+        "signature": "cast(value, type) -> value",
+        "description": "Cast a value to a different data type.",
+        "parameters": [
+            {"name": "value", "description": "The value to cast"},
+            {"name": "type", "description": "The target data type"},
+        ],
+    },
+    "case": {
+        "signature": "case(when condition then value, ..., else default) -> value",
+        "description": "Conditional expression that returns different values based on conditions.",
+        "parameters": [
+            {"name": "condition", "description": "Boolean condition to test"},
+            {"name": "value", "description": "Value to return if condition is true"},
+        ],
+    },
+    "if": {
+        "signature": "if(condition, then_value, else_value) -> value",
+        "description": "Return one of two values based on a condition.",
+        "parameters": [
+            {"name": "condition", "description": "Boolean condition to test"},
+            {"name": "then_value", "description": "Value to return if condition is true"},
+            {"name": "else_value", "description": "Value to return if condition is false"},
+        ],
+    },
+    "nullif": {
+        "signature": "nullif(value1, value2) -> value",
+        "description": "Return NULL if value1 equals value2, otherwise return value1.",
+        "parameters": [
+            {"name": "value1", "description": "The value to compare and potentially return"},
+            {"name": "value2", "description": "The value to compare against"},
+        ],
+    },
+    "like": {
+        "signature": "like(string, pattern) -> bool",
+        "description": "Check if a string matches a pattern (using % and _ wildcards).",
+        "parameters": [
+            {"name": "string", "description": "The string to match"},
+            {"name": "pattern", "description": "The pattern to match against"},
+        ],
+    },
+    "unnest": {
+        "signature": "unnest(array) -> values",
+        "description": "Expand an array into multiple rows.",
+        "parameters": [
+            {"name": "array", "description": "The array to expand"}
+        ],
+    },
+    "array_agg": {
+        "signature": "array_agg(value) -> array",
+        "description": "Aggregate values into an array.",
+        "parameters": [
+            {"name": "value", "description": "The values to aggregate"}
+        ],
+    },
+    "string_agg": {
+        "signature": "string_agg(value, separator) -> string",
+        "description": "Concatenate values into a string with a separator.",
+        "parameters": [
+            {"name": "value", "description": "The values to concatenate"},
+            {"name": "separator", "description": "The separator between values"},
+        ],
+    },
+}
