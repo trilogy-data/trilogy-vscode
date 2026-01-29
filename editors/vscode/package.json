@@ -4,7 +4,7 @@
 	"author": "N/A",
 	"repository": "https://github.com/trilogydata/trilogy-language-server",
 	"license": "MIT",
-	"version": "0.1.27",
+	"version": "0.1.28",
 	"publisher": "trilogydata",
 	"engines": {
 		"vscode": "^1.75.0"
