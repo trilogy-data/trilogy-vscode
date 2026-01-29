@@ -334,7 +334,7 @@ def completions(ls: TrilogyLanguageServer, params: Optional[CompletionParams] = 
         kind = CompletionItemKind.Variable
         if concept.purpose == "key":
             kind = CompletionItemKind.Field
-        elif concept.purpose == "property":c
+        elif concept.purpose == "property":
             kind = CompletionItemKind.Property
         elif concept.purpose == "metric":
             kind = CompletionItemKind.Value
