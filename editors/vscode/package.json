@@ -7,17 +7,10 @@
 	"version": "0.1.27",
 	"publisher": "trilogydata",
 	"engines": {
-		"vscode": "^1.73.0"
+		"vscode": "^1.75.0"
 	},
 	"categories": [
 		"Programming Languages"
-	],
-	"activationEvents": [
-		"onLanguage:trilogy",
-		"onCommand:trilogy.runQuery",
-		"onCommand:trilogy.renderQuery",
-		"onCommand:trilogy.serveFolder",
-		"onCommand:trilogy.stopServe"
 	],
 	"contributes": {
 		"viewsContainers": {

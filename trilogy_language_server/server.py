@@ -52,6 +52,7 @@ from lsprotocol.types import (
     SignatureInformation,
     ParameterInformation,
     SignatureHelpOptions,
+    TextEdit,
 )
 from functools import reduce
 from typing import Dict, List, Optional
@@ -250,7 +251,9 @@ trilogy_server = TrilogyLanguageServer()
 
 
 @trilogy_server.feature(TEXT_DOCUMENT_FORMATTING)
-def format_document(ls: LanguageServer, params: DocumentFormattingParams):
+def format_document(
+    ls: LanguageServer, params: DocumentFormattingParams
+) -> Optional[List[TextEdit]]:
     """Format the entire document"""
     ls.window_log_message(
         LogMessageParams(type=MessageType.Log, message=f"Formatting called @ {params}")
@@ -268,14 +271,38 @@ def format_document(ls: LanguageServer, params: DocumentFormattingParams):
         # For non-file URIs (e.g., untitled:), use default Environment
         env = Environment()
 
-    r = Renderer()
-    parser = ParseToObjects(environment=env)
-    parser.set_text(doc.source)
-    parser.prepare_parse()
-    parser.transform(PARSER.parse(doc.source))
-    # this will reset fail on missing
-    pass_two = parser.run_second_parse_pass()
-    return "\n".join([r.to_string(v) for v in pass_two])
+    try:
+        r = Renderer()
+        parser = ParseToObjects(environment=env)
+        parser.set_text(doc.source)
+        parser.prepare_parse()
+        parser.transform(PARSER.parse(doc.source))
+        # this will reset fail on missing
+        pass_two = parser.run_second_parse_pass()
+        formatted_text = "\n".join([r.to_string(v) for v in pass_two])
+
+        # Calculate the range covering the entire document
+        lines = doc.source.split("\n")
+        last_line = len(lines) - 1
+        last_char = len(lines[last_line]) if lines else 0
+
+        # Return a TextEdit that replaces the entire document
+        return [
+            TextEdit(
+                range=Range(
+                    start=Position(line=0, character=0),
+                    end=Position(line=last_line, character=last_char),
+                ),
+                new_text=formatted_text,
+            )
+        ]
+    except Exception as e:
+        ls.window_log_message(
+            LogMessageParams(
+                type=MessageType.Error, message=f"Formatting failed: {e}"
+            )
+        )
+        return None
 
 
 @trilogy_server.feature(
