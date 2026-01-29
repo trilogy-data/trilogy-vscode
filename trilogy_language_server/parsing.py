@@ -8,8 +8,15 @@ from trilogy_language_server.models import (
 )
 from trilogy.parsing.parse_engine import PARSER
 from lark import ParseTree, Token as LarkToken
-from typing import List, Union, Dict, Optional
-from lsprotocol.types import CodeLens, Range, Position, Command, DocumentSymbol, SymbolKind
+from typing import List, Union, Dict, Optional, Any
+from lsprotocol.types import (
+    CodeLens,
+    Range,
+    Position,
+    Command,
+    DocumentSymbol,
+    SymbolKind,
+)
 from trilogy.parsing.parse_engine import ParseToObjects as ParseToObjects
 from trilogy.core.statements.author import (
     SelectStatement,
@@ -564,11 +571,17 @@ def extract_datasource_info(tree: ParseTree) -> List[DatasourceInfo]:
                     child_data = getattr(child, "data", None)
                     if child_data == "column_list":
                         for col_child in child.children:
-                            if isinstance(col_child, LarkToken) and col_child.type == "IDENTIFIER":
+                            if (
+                                isinstance(col_child, LarkToken)
+                                and col_child.type == "IDENTIFIER"
+                            ):
                                 columns.append(str(col_child))
                     elif child_data == "grain_clause":
                         for grain_child in child.children:
-                            if isinstance(grain_child, LarkToken) and grain_child.type == "IDENTIFIER":
+                            if (
+                                isinstance(grain_child, LarkToken)
+                                and grain_child.type == "IDENTIFIER"
+                            ):
                                 grain.append(str(grain_child))
 
             if name:
@@ -611,11 +624,17 @@ def extract_datasource_info(tree: ParseTree) -> List[DatasourceInfo]:
                     child_data = getattr(child, "data", None)
                     if child_data == "column_list":
                         for col_child in child.children:
-                            if isinstance(col_child, LarkToken) and col_child.type == "IDENTIFIER":
+                            if (
+                                isinstance(col_child, LarkToken)
+                                and col_child.type == "IDENTIFIER"
+                            ):
                                 columns.append(str(col_child))
                     elif child_data == "grain_clause":
                         for grain_child in child.children:
-                            if isinstance(grain_child, LarkToken) and grain_child.type == "IDENTIFIER":
+                            if (
+                                isinstance(grain_child, LarkToken)
+                                and grain_child.type == "IDENTIFIER"
+                            ):
                                 grain.append(str(grain_child))
 
             if name:
@@ -735,7 +754,9 @@ def format_import_hover(imp: ImportInfo) -> str:
     if imp.alias:
         lines.append(f"**Alias:** `{imp.alias}`")
         lines.append("")
-        lines.append(f"*Use `{imp.alias}.concept_name` to reference concepts from this import*")
+        lines.append(
+            f"*Use `{imp.alias}.concept_name` to reference concepts from this import*"
+        )
 
     return "\n".join(lines)
 
@@ -828,12 +849,15 @@ def get_document_symbols(
 
 
 # Trilogy built-in functions with signature information for signature help
-TRILOGY_FUNCTIONS = {
+TRILOGY_FUNCTIONS: dict[str, dict[str, Any]] = {
     "count": {
         "signature": "count(concept) -> int",
         "description": "Count the number of distinct values of a concept.",
         "parameters": [
-            {"name": "concept", "description": "The concept to count distinct values of"}
+            {
+                "name": "concept",
+                "description": "The concept to count distinct values of",
+            }
         ],
     },
     "sum": {
@@ -883,30 +907,22 @@ TRILOGY_FUNCTIONS = {
     "length": {
         "signature": "length(string) -> int",
         "description": "Return the length of a string.",
-        "parameters": [
-            {"name": "string", "description": "The string to measure"}
-        ],
+        "parameters": [{"name": "string", "description": "The string to measure"}],
     },
     "upper": {
         "signature": "upper(string) -> string",
         "description": "Convert a string to uppercase.",
-        "parameters": [
-            {"name": "string", "description": "The string to convert"}
-        ],
+        "parameters": [{"name": "string", "description": "The string to convert"}],
     },
     "lower": {
         "signature": "lower(string) -> string",
         "description": "Convert a string to lowercase.",
-        "parameters": [
-            {"name": "string", "description": "The string to convert"}
-        ],
+        "parameters": [{"name": "string", "description": "The string to convert"}],
     },
     "trim": {
         "signature": "trim(string) -> string",
         "description": "Remove leading and trailing whitespace from a string.",
-        "parameters": [
-            {"name": "string", "description": "The string to trim"}
-        ],
+        "parameters": [{"name": "string", "description": "The string to trim"}],
     },
     "substring": {
         "signature": "substring(string, start, length) -> string",
@@ -920,31 +936,28 @@ TRILOGY_FUNCTIONS = {
     "abs": {
         "signature": "abs(value) -> numeric",
         "description": "Return the absolute value of a number.",
-        "parameters": [
-            {"name": "value", "description": "The numeric value"}
-        ],
+        "parameters": [{"name": "value", "description": "The numeric value"}],
     },
     "round": {
         "signature": "round(value, decimals?) -> numeric",
         "description": "Round a number to the specified number of decimal places.",
         "parameters": [
             {"name": "value", "description": "The numeric value to round"},
-            {"name": "decimals", "description": "Number of decimal places (default: 0)"},
+            {
+                "name": "decimals",
+                "description": "Number of decimal places (default: 0)",
+            },
         ],
     },
     "floor": {
         "signature": "floor(value) -> int",
         "description": "Round a number down to the nearest integer.",
-        "parameters": [
-            {"name": "value", "description": "The numeric value"}
-        ],
+        "parameters": [{"name": "value", "description": "The numeric value"}],
     },
     "ceil": {
         "signature": "ceil(value) -> int",
         "description": "Round a number up to the nearest integer.",
-        "parameters": [
-            {"name": "value", "description": "The numeric value"}
-        ],
+        "parameters": [{"name": "value", "description": "The numeric value"}],
     },
     "date": {
         "signature": "date(year, month, day) -> date",
@@ -958,23 +971,17 @@ TRILOGY_FUNCTIONS = {
     "year": {
         "signature": "year(date) -> int",
         "description": "Extract the year from a date.",
-        "parameters": [
-            {"name": "date", "description": "The date to extract from"}
-        ],
+        "parameters": [{"name": "date", "description": "The date to extract from"}],
     },
     "month": {
         "signature": "month(date) -> int",
         "description": "Extract the month from a date.",
-        "parameters": [
-            {"name": "date", "description": "The date to extract from"}
-        ],
+        "parameters": [{"name": "date", "description": "The date to extract from"}],
     },
     "day": {
         "signature": "day(date) -> int",
         "description": "Extract the day from a date.",
-        "parameters": [
-            {"name": "date", "description": "The date to extract from"}
-        ],
+        "parameters": [{"name": "date", "description": "The date to extract from"}],
     },
     "now": {
         "signature": "now() -> timestamp",
@@ -1007,15 +1014,24 @@ TRILOGY_FUNCTIONS = {
         "description": "Return one of two values based on a condition.",
         "parameters": [
             {"name": "condition", "description": "Boolean condition to test"},
-            {"name": "then_value", "description": "Value to return if condition is true"},
-            {"name": "else_value", "description": "Value to return if condition is false"},
+            {
+                "name": "then_value",
+                "description": "Value to return if condition is true",
+            },
+            {
+                "name": "else_value",
+                "description": "Value to return if condition is false",
+            },
         ],
     },
     "nullif": {
         "signature": "nullif(value1, value2) -> value",
         "description": "Return NULL if value1 equals value2, otherwise return value1.",
         "parameters": [
-            {"name": "value1", "description": "The value to compare and potentially return"},
+            {
+                "name": "value1",
+                "description": "The value to compare and potentially return",
+            },
             {"name": "value2", "description": "The value to compare against"},
         ],
     },
@@ -1030,16 +1046,12 @@ TRILOGY_FUNCTIONS = {
     "unnest": {
         "signature": "unnest(array) -> values",
         "description": "Expand an array into multiple rows.",
-        "parameters": [
-            {"name": "array", "description": "The array to expand"}
-        ],
+        "parameters": [{"name": "array", "description": "The array to expand"}],
     },
     "array_agg": {
         "signature": "array_agg(value) -> array",
         "description": "Aggregate values into an array.",
-        "parameters": [
-            {"name": "value", "description": "The values to aggregate"}
-        ],
+        "parameters": [{"name": "value", "description": "The values to aggregate"}],
     },
     "string_agg": {
         "signature": "string_agg(value, separator) -> string",

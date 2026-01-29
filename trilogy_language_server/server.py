@@ -45,7 +45,6 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_DOCUMENT_SYMBOL,
     DocumentSymbolParams,
     DocumentSymbol,
-    SymbolKind,
     TEXT_DOCUMENT_SIGNATURE_HELP,
     SignatureHelpParams,
     SignatureHelp,
@@ -298,9 +297,7 @@ def format_document(
         ]
     except Exception as e:
         ls.window_log_message(
-            LogMessageParams(
-                type=MessageType.Error, message=f"Formatting failed: {e}"
-            )
+            LogMessageParams(type=MessageType.Error, message=f"Formatting failed: {e}")
         )
         return None
 
@@ -315,7 +312,6 @@ def completions(ls: TrilogyLanguageServer, params: Optional[CompletionParams] = 
         return CompletionList(is_incomplete=False, items=[])
 
     uri = params.text_document.uri
-    position = params.position
 
     ls.window_log_message(
         LogMessageParams(
@@ -338,7 +334,7 @@ def completions(ls: TrilogyLanguageServer, params: Optional[CompletionParams] = 
         kind = CompletionItemKind.Variable
         if concept.purpose == "key":
             kind = CompletionItemKind.Field
-        elif concept.purpose == "property":
+        elif concept.purpose == "property":c
             kind = CompletionItemKind.Property
         elif concept.purpose == "metric":
             kind = CompletionItemKind.Value
@@ -350,7 +346,11 @@ def completions(ls: TrilogyLanguageServer, params: Optional[CompletionParams] = 
         if concept.description:
             doc_parts.append(concept.description)
         if concept.lineage:
-            doc_parts.append(f"Derivation: `{concept.lineage[:50]}...`" if len(concept.lineage) > 50 else f"Derivation: `{concept.lineage}`")
+            doc_parts.append(
+                f"Derivation: `{concept.lineage[:50]}...`"
+                if len(concept.lineage) > 50
+                else f"Derivation: `{concept.lineage}`"
+            )
 
         items.append(
             CompletionItem(
@@ -522,10 +522,16 @@ def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Optional[Hover]:
                 if ds.start_column <= col_1idx <= ds.end_column:
                     hover_text = format_datasource_hover(ds)
                     return Hover(
-                        contents=MarkupContent(kind=MarkupKind.Markdown, value=hover_text),
+                        contents=MarkupContent(
+                            kind=MarkupKind.Markdown, value=hover_text
+                        ),
                         range=Range(
-                            start=Position(line=ds.start_line - 1, character=ds.start_column - 1),
-                            end=Position(line=ds.end_line - 1, character=ds.end_column - 1),
+                            start=Position(
+                                line=ds.start_line - 1, character=ds.start_column - 1
+                            ),
+                            end=Position(
+                                line=ds.end_line - 1, character=ds.end_column - 1
+                            ),
                         ),
                     )
             else:
@@ -533,7 +539,9 @@ def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Optional[Hover]:
                 return Hover(
                     contents=MarkupContent(kind=MarkupKind.Markdown, value=hover_text),
                     range=Range(
-                        start=Position(line=ds.start_line - 1, character=ds.start_column - 1),
+                        start=Position(
+                            line=ds.start_line - 1, character=ds.start_column - 1
+                        ),
                         end=Position(line=ds.end_line - 1, character=ds.end_column - 1),
                     ),
                 )
@@ -547,8 +555,12 @@ def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Optional[Hover]:
                 return Hover(
                     contents=MarkupContent(kind=MarkupKind.Markdown, value=hover_text),
                     range=Range(
-                        start=Position(line=imp.start_line - 1, character=imp.start_column - 1),
-                        end=Position(line=imp.end_line - 1, character=imp.end_column - 1),
+                        start=Position(
+                            line=imp.start_line - 1, character=imp.start_column - 1
+                        ),
+                        end=Position(
+                            line=imp.end_line - 1, character=imp.end_column - 1
+                        ),
                     ),
                 )
 
@@ -662,9 +674,11 @@ def definition(
                         character=concept.column - 1 if concept.column else 0,
                     ),
                     end=Position(
-                        line=concept.end_line - 1
-                        if concept.end_line
-                        else concept.line_number - 1,
+                        line=(
+                            concept.end_line - 1
+                            if concept.end_line
+                            else concept.line_number - 1
+                        ),
                         character=concept.end_column - 1 if concept.end_column else 100,
                     ),
                 ),
