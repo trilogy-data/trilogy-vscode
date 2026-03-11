@@ -12,7 +12,7 @@
 	"categories": [
 		"Programming Languages"
 	],
-	"icon": "images/trilogy.png",
+	"icon": "images/icons/trilogy.png",
 	"contributes": {
 		"viewsContainers": {
 			"activitybar": [
