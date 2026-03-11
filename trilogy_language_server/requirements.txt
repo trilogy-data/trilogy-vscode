@@ -1,5 +1,5 @@
 pygls>=2.0.0
-pytrilogy>=0.3.156
+pytrilogy>=0.3.185
 google-cloud-bigquery
 sqlalchemy-bigquery
 duckdb
