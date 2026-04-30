@@ -1,42 +1,46 @@
-from typing import List, Union, Tuple, Any
+from typing import List, Tuple
+import re
 import logging
-from lark import UnexpectedToken, ParseTree
+from trilogy.parsing.parse_engine_v2 import parse_syntax
+from trilogy.core.exceptions import InvalidSyntaxException
+from trilogy.parsing.v2.syntax import SyntaxNode
 from lsprotocol.types import (
     Diagnostic,
     Position,
     Range,
 )
 
-from .grammar import PARSER
+
+def _parse_syntax_exception_location(
+    error: InvalidSyntaxException,
+) -> Tuple[int, int]:
+    """Extract line and column from an InvalidSyntaxException message."""
+    m = re.search(r"-->\s*(\d+):(\d+)", str(error))
+    if m:
+        return int(m.group(1)), int(m.group(2))
+    return 1, 1
 
 
-def user_repr(error: Union[UnexpectedToken]):
-    if isinstance(error, UnexpectedToken):
-        expected = ", ".join(error.accepts or error.expected)
-        return (
-            f"Unexpected token {str(error.token)!r}. Expected one of:\n{{{expected}}}"
-        )
-    else:
-        return str(error)
-
-
-def get_diagnostics(doctext: str) -> Tuple[Union[ParseTree, None], List[Diagnostic]]:
+def get_diagnostics(
+    doctext: str,
+) -> Tuple[SyntaxNode | None, List[Diagnostic]]:
     diagnostics: List[Diagnostic] = []
     parse_tree = None
 
-    def on_error(e: UnexpectedToken) -> Any:
+    try:
+        doc = parse_syntax(doctext)
+        parse_tree = doc.tree
+    except InvalidSyntaxException as e:
+        line, column = _parse_syntax_exception_location(e)
         diagnostics.append(
             Diagnostic(
                 Range(
-                    Position(e.line - 1, e.column - 1), Position(e.line - 1, e.column)
+                    Position(line - 1, column - 1),
+                    Position(line - 1, column),
                 ),
-                user_repr(e),
+                str(e),
             )
         )
-        return True
-
-    try:
-        parse_tree = PARSER.parse(doctext, on_error=on_error)  # type: ignore
     except Exception:
         logging.exception("parser raised exception")
     return parse_tree, diagnostics

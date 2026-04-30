@@ -6,8 +6,8 @@ from trilogy_language_server.models import (
     DatasourceInfo,
     ImportInfo,
 )
-from trilogy.parsing.parse_engine import PARSER
-from lark import ParseTree, Token as LarkToken
+from trilogy.parsing.parse_engine_v2 import parse_syntax, TopLevelStatementParser
+from trilogy.parsing.v2.syntax import SyntaxNode, SyntaxToken
 from typing import List, Union, Dict, Optional, Any
 from lsprotocol.types import (
     CodeLens,
@@ -17,7 +17,6 @@ from lsprotocol.types import (
     DocumentSymbol,
     SymbolKind,
 )
-from trilogy.parsing.parse_engine import ParseToObjects as ParseToObjects
 from trilogy.core.statements.author import (
     SelectStatement,
     MultiSelectStatement,
@@ -60,9 +59,9 @@ def extract_subtext(
     return subtext
 
 
-def gen_tokens(text, item: Union[ParseTree, LarkToken]) -> List[Token]:
+def gen_tokens(text, item: Union[SyntaxNode, SyntaxToken]) -> List[Token]:
     tokens = []
-    if isinstance(item, LarkToken):
+    if isinstance(item, SyntaxToken):
         line = item.line or 0
         end_line = item.end_line or 1
         column = item.column or 1
@@ -82,19 +81,19 @@ def gen_tokens(text, item: Union[ParseTree, LarkToken]) -> List[Token]:
     return tokens
 
 
-def tree_to_symbols(text, input: ParseTree) -> List[Token]:
+def tree_to_symbols(text, input: SyntaxNode) -> List[Token]:
     tokens = []
     for x in input.children:
         tokens += gen_tokens(text, x)
     return tokens
 
 
-def gen_tree(text: str) -> ParseTree:
-    return PARSER.parse(text)
+def gen_tree(text: str) -> SyntaxNode:
+    return parse_syntax(text).tree
 
 
 def text_to_symbols(text: str) -> List[Token]:
-    parsed: ParseTree = gen_tree(text)
+    parsed: SyntaxNode = gen_tree(text)
     return tree_to_symbols(text, parsed)
 
 
@@ -181,15 +180,12 @@ def parse_statement(
 
 
 def code_lense_tree(
-    environment: Environment, text, input: ParseTree, dialect: BaseDialect
+    environment: Environment, text, input: SyntaxNode, dialect: BaseDialect
 ) -> List[CodeLens]:
     tokens = []
-    parser = ParseToObjects(environment=environment)
-    parser.set_text(text)
-    parser.prepare_parse()
-    parser.transform(input)
-    # this will reset fail on missing
-    pass_two = parser.run_second_parse_pass()
+    doc = parse_syntax(text)
+    parser = TopLevelStatementParser(environment=environment)
+    pass_two = parser.parse(doc)
     for idx, stmt in enumerate(pass_two):
         try:
             x = parse_statement(idx, stmt, dialect, environment=environment)
@@ -215,7 +211,7 @@ CONCEPT_REFERENCE_NODES = {
 
 
 def extract_concept_locations(
-    tree: ParseTree, default_namespace: str = "local"
+    tree: SyntaxNode, default_namespace: str = "local"
 ) -> List[ConceptLocation]:
     """
     Extract all concept definition and reference locations from the parse tree.
@@ -230,13 +226,13 @@ def extract_concept_locations(
     locations: List[ConceptLocation] = []
 
     def walk_tree(
-        node: Union[ParseTree, LarkToken],
+        node: Union[SyntaxNode, SyntaxToken],
         in_definition: bool = False,
         parent_data: Optional[str] = None,
     ):
-        if isinstance(node, LarkToken):
+        if isinstance(node, SyntaxToken):
             # We found a token - check if it's an identifier in a relevant context
-            if node.type == "IDENTIFIER" and parent_data in (
+            if node.name == "IDENTIFIER" and parent_data in (
                 CONCEPT_DEFINITION_NODES
                 | CONCEPT_REFERENCE_NODES
                 | {"grain_clause", "column_list"}
@@ -245,7 +241,7 @@ def extract_concept_locations(
                 is_def = parent_data in CONCEPT_DEFINITION_NODES
 
                 # Build the concept address
-                identifier = str(node)
+                identifier = node.value
 
                 # Check if identifier already has a namespace prefix (e.g., 'b.user_id' from import)
                 # For definitions, always use default namespace
@@ -271,8 +267,8 @@ def extract_concept_locations(
                     )
                 )
         else:
-            # It's a ParseTree node
-            current_data = getattr(node, "data", None)
+            # It's a SyntaxNode
+            current_data = node.name
             is_def_context = current_data in CONCEPT_DEFINITION_NODES
 
             for child in node.children:
@@ -532,17 +528,17 @@ def get_definition_locations(
     return definitions
 
 
-def extract_datasource_info(tree: ParseTree) -> List[DatasourceInfo]:
+def extract_datasource_info(tree: SyntaxNode) -> List[DatasourceInfo]:
     """
     Extract datasource information from the parse tree for hover tooltips.
     """
     datasources: List[DatasourceInfo] = []
 
-    def walk_tree(node: Union[ParseTree, LarkToken]):
-        if isinstance(node, LarkToken):
+    def walk_tree(node: Union[SyntaxNode, SyntaxToken]):
+        if isinstance(node, SyntaxToken):
             return
 
-        node_data = getattr(node, "data", None)
+        node_data = node.name
 
         if node_data == "datasource":
             # Extract datasource information
@@ -557,32 +553,57 @@ def extract_datasource_info(tree: ParseTree) -> List[DatasourceInfo]:
             end_column = 1
 
             for child in node.children:
-                if isinstance(child, LarkToken):
-                    if child.type == "IDENTIFIER" and not name:
-                        name = str(child)
+                if isinstance(child, SyntaxToken):
+                    if child.name == "DATASOURCE_ROOT":
+                        is_root = True
+                    elif child.name == "IDENTIFIER" and not name:
+                        name = child.value
                         start_line = child.line or 1
                         start_column = child.column or 1
-                    elif child.type == "IDENTIFIER":
-                        address = str(child)
+                    elif child.name == "ADDRESS":
+                        address = child.value
+                        end_line = child.end_line or child.line or 1
+                        end_column = child.end_column or 100
+                    elif child.name == "IDENTIFIER":
+                        address = child.value
                         end_line = child.end_line or child.line or 1
                         end_column = child.end_column or 100
                 else:
-                    # It's a tree node
-                    child_data = getattr(child, "data", None)
-                    if child_data == "column_list":
-                        for col_child in child.children:
-                            if (
-                                isinstance(col_child, LarkToken)
-                                and col_child.type == "IDENTIFIER"
+                    # It's a SyntaxNode
+                    child_data = child.name
+                    if child_data == "address":
+                        # address node contains ADDRESS token
+                        for addr_child in child.children:
+                            if isinstance(addr_child, SyntaxToken) and addr_child.name in (
+                                "ADDRESS",
+                                "IDENTIFIER",
                             ):
-                                columns.append(str(col_child))
+                                address = addr_child.value
+                                end_line = addr_child.end_line or addr_child.line or 1
+                                end_column = addr_child.end_column or 100
+                    elif child_data == "column_assignment_list":
+                        # New structure: column_assignment_list -> column_assignment -> concept_assignment -> IDENTIFIER
+                        for col_assign in child.children:
+                            if isinstance(col_assign, SyntaxNode):
+                                for ca in col_assign.children:
+                                    if isinstance(ca, SyntaxNode) and ca.name == "concept_assignment":
+                                        for ca_child in ca.children:
+                                            if isinstance(ca_child, SyntaxToken) and ca_child.name == "IDENTIFIER":
+                                                columns.append(ca_child.value)
+                                    elif isinstance(ca, SyntaxToken) and ca.name == "IDENTIFIER":
+                                        columns.append(ca.value)
+                    elif child_data == "column_list":
+                        for col_child in child.children:
+                            if isinstance(col_child, SyntaxToken) and col_child.name == "IDENTIFIER":
+                                columns.append(col_child.value)
                     elif child_data == "grain_clause":
                         for grain_child in child.children:
-                            if (
-                                isinstance(grain_child, LarkToken)
-                                and grain_child.type == "IDENTIFIER"
-                            ):
-                                grain.append(str(grain_child))
+                            if isinstance(grain_child, SyntaxNode) and grain_child.name == "column_list":
+                                for gc in grain_child.children:
+                                    if isinstance(gc, SyntaxToken) and gc.name == "IDENTIFIER":
+                                        grain.append(gc.value)
+                            elif isinstance(grain_child, SyntaxToken) and grain_child.name == "IDENTIFIER":
+                                grain.append(grain_child.value)
 
             if name:
                 datasources.append(
@@ -598,59 +619,6 @@ def extract_datasource_info(tree: ParseTree) -> List[DatasourceInfo]:
                         is_root=is_root,
                     )
                 )
-        elif node_data == "root_datasource":
-            # Handle root datasource syntax
-            name = ""
-            address = ""
-            columns = []
-            grain = []
-            start_line = 1
-            start_column = 1
-            end_line = 1
-            end_column = 1
-
-            for child in node.children:
-                if isinstance(child, LarkToken):
-                    if child.type == "IDENTIFIER" and not name:
-                        name = str(child)
-                        start_line = child.line or 1
-                        start_column = child.column or 1
-                    elif child.type == "IDENTIFIER":
-                        address = str(child)
-                        end_line = child.end_line or child.line or 1
-                        end_column = child.end_column or 100
-                else:
-                    # It's a tree node
-                    child_data = getattr(child, "data", None)
-                    if child_data == "column_list":
-                        for col_child in child.children:
-                            if (
-                                isinstance(col_child, LarkToken)
-                                and col_child.type == "IDENTIFIER"
-                            ):
-                                columns.append(str(col_child))
-                    elif child_data == "grain_clause":
-                        for grain_child in child.children:
-                            if (
-                                isinstance(grain_child, LarkToken)
-                                and grain_child.type == "IDENTIFIER"
-                            ):
-                                grain.append(str(grain_child))
-
-            if name:
-                datasources.append(
-                    DatasourceInfo(
-                        name=name,
-                        address=address or name,
-                        columns=columns,
-                        grain=grain,
-                        start_line=start_line,
-                        start_column=start_column,
-                        end_line=end_line,
-                        end_column=end_column,
-                        is_root=True,
-                    )
-                )
         else:
             for child in node.children:
                 walk_tree(child)
@@ -659,17 +627,17 @@ def extract_datasource_info(tree: ParseTree) -> List[DatasourceInfo]:
     return datasources
 
 
-def extract_import_info(tree: ParseTree) -> List[ImportInfo]:
+def extract_import_info(tree: SyntaxNode) -> List[ImportInfo]:
     """
     Extract import information from the parse tree for hover tooltips.
     """
     imports: List[ImportInfo] = []
 
-    def walk_tree(node: Union[ParseTree, LarkToken]):
-        if isinstance(node, LarkToken):
+    def walk_tree(node: Union[SyntaxNode, SyntaxToken]):
+        if isinstance(node, SyntaxToken):
             return
 
-        node_data = getattr(node, "data", None)
+        node_data = node.name
 
         if node_data == "import_statement":
             # Extract import information
@@ -681,17 +649,17 @@ def extract_import_info(tree: ParseTree) -> List[ImportInfo]:
             end_column = 1
 
             for child in node.children:
-                if isinstance(child, LarkToken):
-                    if child.type in ("IDENTIFIER", "DOTTED_NAME", "FILEPATH"):
+                if isinstance(child, SyntaxToken):
+                    if child.name in ("IDENTIFIER", "DOTTED_NAME", "FILEPATH"):
                         if not path:
-                            path = str(child)
+                            path = child.value
                             start_line = child.line or 1
                             start_column = child.column or 1
                             end_line = child.end_line or child.line or 1
                             end_column = child.end_column or 100
                         else:
                             # This is the alias
-                            alias = str(child)
+                            alias = child.value
                             end_line = child.end_line or child.line or 1
                             end_column = child.end_column or 100
 

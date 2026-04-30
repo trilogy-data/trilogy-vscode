@@ -57,7 +57,7 @@ from functools import reduce
 from typing import Dict, List, Optional
 from trilogy_language_server.error_reporting import get_diagnostics
 import operator
-from lark import ParseTree
+from trilogy.parsing.v2.syntax import SyntaxNode
 from trilogy_language_server.models import (
     TokenModifier,
     Token,
@@ -83,7 +83,7 @@ from trilogy_language_server.parsing import (
     TRILOGY_FUNCTIONS,
 )
 from trilogy.parsing.render import Renderer
-from trilogy.parsing.parse_engine import ParseToObjects, PARSER
+from trilogy.parsing.parse_engine_v2 import parse_syntax, TopLevelStatementParser
 from trilogy.authoring import Environment
 from trilogy.dialect.duckdb import DuckDBDialect
 import re
@@ -134,12 +134,12 @@ class TrilogyLanguageServer(LanguageServer):
             self.publish_concept_locations(raw_tree, text_doc.uri)
 
     def publish_tokens(
-        self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
+        self: "TrilogyLanguageServer", original_text: str, raw_tree: SyntaxNode, uri: str
     ):
         self.tokens[uri] = tree_to_symbols(original_text, raw_tree)
 
     def publish_concept_locations(
-        self: "TrilogyLanguageServer", raw_tree: ParseTree, uri: str
+        self: "TrilogyLanguageServer", raw_tree: SyntaxNode, uri: str
     ):
         """Extract and store concept locations from the parse tree."""
         try:
@@ -199,7 +199,7 @@ class TrilogyLanguageServer(LanguageServer):
             self.import_info[uri] = []
 
     def publish_code_lens(
-        self: "TrilogyLanguageServer", original_text: str, raw_tree: ParseTree, uri: str
+        self: "TrilogyLanguageServer", original_text: str, raw_tree: SyntaxNode, uri: str
     ):
         environment = self.environments.get(uri, None)
         fs_path_str = to_fs_path(uri)
@@ -272,16 +272,14 @@ def format_document(
 
     try:
         r = Renderer()
-        parser = ParseToObjects(environment=env)
-        parser.set_text(doc.source)
-        parser.prepare_parse()
-        parser.transform(PARSER.parse(doc.source))
-        # this will reset fail on missing
-        pass_two = parser.run_second_parse_pass()
+        source_text = doc.source
+        syntax_doc = parse_syntax(source_text)
+        parser = TopLevelStatementParser(environment=env)
+        pass_two = parser.parse(syntax_doc)
         formatted_text = "\n".join([r.to_string(v) for v in pass_two])
 
         # Calculate the range covering the entire document
-        lines = doc.source.split("\n")
+        lines = source_text.split("\n")
         last_line = len(lines) - 1
         last_char = len(lines[last_line]) if lines else 0
 
