@@ -534,6 +534,18 @@ def extract_datasource_info(tree: SyntaxNode) -> List[DatasourceInfo]:
     """
     datasources: List[DatasourceInfo] = []
 
+    def _extract_column_identifiers(col_assign: SyntaxNode) -> List[str]:
+        """Extract IDENTIFIER values from a column_assignment node."""
+        identifiers: List[str] = []
+        for ca in col_assign.children:
+            if isinstance(ca, SyntaxNode) and ca.name == "concept_assignment":
+                for ca_child in ca.children:
+                    if isinstance(ca_child, SyntaxToken) and ca_child.name == "IDENTIFIER":
+                        identifiers.append(ca_child.value)
+            elif isinstance(ca, SyntaxToken) and ca.name == "IDENTIFIER":
+                identifiers.append(ca.value)
+        return identifiers
+
     def walk_tree(node: Union[SyntaxNode, SyntaxToken]):
         if isinstance(node, SyntaxToken):
             return
@@ -585,13 +597,7 @@ def extract_datasource_info(tree: SyntaxNode) -> List[DatasourceInfo]:
                         # New structure: column_assignment_list -> column_assignment -> concept_assignment -> IDENTIFIER
                         for col_assign in child.children:
                             if isinstance(col_assign, SyntaxNode):
-                                for ca in col_assign.children:
-                                    if isinstance(ca, SyntaxNode) and ca.name == "concept_assignment":
-                                        for ca_child in ca.children:
-                                            if isinstance(ca_child, SyntaxToken) and ca_child.name == "IDENTIFIER":
-                                                columns.append(ca_child.value)
-                                    elif isinstance(ca, SyntaxToken) and ca.name == "IDENTIFIER":
-                                        columns.append(ca.value)
+                                columns.extend(_extract_column_identifiers(col_assign))
                     elif child_data == "column_list":
                         for col_child in child.children:
                             if isinstance(col_child, SyntaxToken) and col_child.name == "IDENTIFIER":

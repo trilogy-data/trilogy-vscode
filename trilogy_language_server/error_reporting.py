@@ -11,11 +11,16 @@ from lsprotocol.types import (
 )
 
 
+# Pattern to extract line/column from InvalidSyntaxException messages.
+# Example: " --> 1:36\n  |..."
+_SYNTAX_ERROR_LOCATION_RE = re.compile(r"-->\s*(\d+):(\d+)")
+
+
 def _parse_syntax_exception_location(
     error: InvalidSyntaxException,
 ) -> Tuple[int, int]:
     """Extract line and column from an InvalidSyntaxException message."""
-    m = re.search(r"-->\s*(\d+):(\d+)", str(error))
+    m = _SYNTAX_ERROR_LOCATION_RE.search(str(error))
     if m:
         return int(m.group(1)), int(m.group(2))
     return 1, 1
