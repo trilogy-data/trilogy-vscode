@@ -17,7 +17,7 @@ from trilogy_language_server.parsing import (
 from lsprotocol.types import CodeLens, Range, Position, Command
 from trilogy.dialect.duckdb import DuckDBDialect
 from trilogy.authoring import Environment
-from trilogy.parsing.parse_engine import ParseToObjects, PARSER
+from trilogy.parsing.parse_engine_v2 import parse_syntax, TopLevelStatementParser
 
 
 def test_parse_tree():
@@ -152,12 +152,9 @@ property user_id.name string;
 metric total_users <- count(user_id);
 """
     env = Environment()
-    parser = ParseToObjects(environment=env)
-    parser.set_text(code)
-    parser.prepare_parse()
-    tree = PARSER.parse(code)
-    parser.transform(tree)
-    parser.run_second_parse_pass()
+    parser = TopLevelStatementParser(environment=env)
+    doc = parse_syntax(code)
+    parser.parse(doc)
 
     concept_info = extract_concepts_from_environment(env)
 
@@ -209,12 +206,9 @@ def test_resolve_concept_address():
 property user_id.name string;
 """
     env = Environment()
-    parser = ParseToObjects(environment=env)
-    parser.set_text(code)
-    parser.prepare_parse()
-    tree = PARSER.parse(code)
-    parser.transform(tree)
-    parser.run_second_parse_pass()
+    parser = TopLevelStatementParser(environment=env)
+    doc = parse_syntax(code)
+    parser.parse(doc)
 
     concept_info = extract_concepts_from_environment(env)
 
