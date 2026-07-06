@@ -12,7 +12,7 @@ suite('Should get diagnostics', () => {
 
     test('Diagnoses uppercase texts', async () => {
         await testDiagnostics(docUri, [
-            { message: `Unexpected token ''. Expected one of:`, range: toRange(0, 7, 0, 8), severity: vscode.DiagnosticSeverity.Error, source: 'ex' },
+            { message: ` --> 1:9`, range: toRange(0, 8, 0, 9), severity: vscode.DiagnosticSeverity.Error, source: 'ex' },
         ]);
     });
 
