@@ -180,8 +180,8 @@ class TestFeatureFunctions:
         assert result[0].range.start.character == 0
 
         # The new_text should contain the formatted content
-        expected_text = """SELECT
-    1 -> test,
+        expected_text = """select
+    1 as test,
 ;"""
         assert result[0].new_text == expected_text
 
@@ -528,7 +528,7 @@ class TestNestedImportFormatting:
         assert len(result) == 1
         # The formatted text should include the import and the selection
         assert "import" in result[0].new_text
-        assert "SELECT" in result[0].new_text
+        assert "select" in result[0].new_text
 
     def test_format_document_with_invalid_uri_handles_gracefully(self, mock_server):
         """Test that format_document handles non-file URIs gracefully.
@@ -554,7 +554,7 @@ class TestNestedImportFormatting:
         assert isinstance(result, list)
         assert len(result) == 1
         assert isinstance(result[0], TextEdit)
-        assert "SELECT" in result[0].new_text
+        assert "select" in result[0].new_text
 
     def test_format_document_preserves_import_when_wrong_working_path(
         self, mock_server

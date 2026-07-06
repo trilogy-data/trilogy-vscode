@@ -6,7 +6,7 @@ import os
 from trilogy_language_server.server import trilogy_server
 import sys
 
-logging.basicConfig(level=logging.DEBUG, filemode="w")
+logging.basicConfig(level=logging.DEBUG)
 
 
 def main():
