@@ -1,15 +1,16 @@
-from typing import List, Tuple
-import re
 import logging
-from trilogy.parsing.parse_engine_v2 import parse_syntax
-from trilogy.core.exceptions import InvalidSyntaxException
-from trilogy.parsing.v2.syntax import SyntaxNode
+import re
+
 from lsprotocol.types import (
     Diagnostic,
     Position,
     Range,
 )
+from trilogy.core.exceptions import InvalidSyntaxException
+from trilogy.parsing.parse_engine_v2 import parse_syntax
+from trilogy.parsing.v2.syntax import SyntaxNode
 
+logger = logging.getLogger(__name__)
 
 # Pattern to extract line/column from InvalidSyntaxException messages.
 # Example: " --> 1:36\n  |..."
@@ -18,7 +19,7 @@ _SYNTAX_ERROR_LOCATION_RE = re.compile(r"-->\s*(\d+):(\d+)")
 
 def _parse_syntax_exception_location(
     error: InvalidSyntaxException,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Extract line and column from an InvalidSyntaxException message."""
     m = _SYNTAX_ERROR_LOCATION_RE.search(str(error))
     if m:
@@ -28,8 +29,8 @@ def _parse_syntax_exception_location(
 
 def get_diagnostics(
     doctext: str,
-) -> Tuple[SyntaxNode | None, List[Diagnostic]]:
-    diagnostics: List[Diagnostic] = []
+) -> tuple[SyntaxNode | None, list[Diagnostic]]:
+    diagnostics: list[Diagnostic] = []
     parse_tree = None
 
     try:
@@ -46,6 +47,6 @@ def get_diagnostics(
                 str(e),
             )
         )
-    except Exception:
-        logging.exception("parser raised exception")
+    except (AttributeError, TypeError, ValueError, RuntimeError):
+        logger.exception("parser raised exception")
     return parse_tree, diagnostics

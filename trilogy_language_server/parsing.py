@@ -1,33 +1,44 @@
+import logging
+from typing import Any
+
+from lsprotocol.types import (
+    CodeLens,
+    Command,
+    DocumentSymbol,
+    Position,
+    Range,
+    SymbolKind,
+)
+from trilogy.constants import CONFIG
+from trilogy.core.statements.author import (
+    Environment,
+    MultiSelectStatement,
+    PersistStatement,
+    RawSQLStatement,
+    SelectStatement,
+)
+from trilogy.dialect.base import BaseDialect
+from trilogy.parsing.parse_engine_v2 import TopLevelStatementParser, parse_syntax
+from trilogy.parsing.v2.syntax import SyntaxNode, SyntaxToken
+
 from trilogy_language_server.models import (
-    Token,
-    TokenModifier,
     ConceptInfo,
     ConceptLocation,
     DatasourceInfo,
     ImportInfo,
+    Token,
+    TokenModifier,
 )
-from trilogy.parsing.parse_engine_v2 import parse_syntax, TopLevelStatementParser
-from trilogy.parsing.v2.syntax import SyntaxNode, SyntaxToken
-from typing import List, Union, Dict, Optional, Any
-from lsprotocol.types import (
-    CodeLens,
-    Range,
-    Position,
-    Command,
-    DocumentSymbol,
-    SymbolKind,
-)
-from trilogy.core.statements.author import (
-    SelectStatement,
-    MultiSelectStatement,
-    PersistStatement,
-    Environment,
-    RawSQLStatement,
-)
-from trilogy.dialect.base import BaseDialect
-from trilogy.constants import CONFIG
 
 CONFIG.rendering.parameters = False
+logger = logging.getLogger(__name__)
+RECOVERABLE_PARSE_EXCEPTIONS = (
+    AttributeError,
+    KeyError,
+    RuntimeError,
+    TypeError,
+    ValueError,
+)
 
 
 def extract_subtext(
@@ -59,7 +70,7 @@ def extract_subtext(
     return subtext
 
 
-def gen_tokens(text, item: Union[SyntaxNode, SyntaxToken]) -> List[Token]:
+def gen_tokens(text, item: SyntaxNode | SyntaxToken) -> list[Token]:
     tokens = []
     if isinstance(item, SyntaxToken):
         line = item.line or 0
@@ -81,7 +92,7 @@ def gen_tokens(text, item: Union[SyntaxNode, SyntaxToken]) -> List[Token]:
     return tokens
 
 
-def tree_to_symbols(text, input: SyntaxNode) -> List[Token]:
+def tree_to_symbols(text, input: SyntaxNode) -> list[Token]:
     tokens = []
     for x in input.children:
         tokens += gen_tokens(text, x)
@@ -92,7 +103,7 @@ def gen_tree(text: str) -> SyntaxNode:
     return parse_syntax(text).tree
 
 
-def text_to_symbols(text: str) -> List[Token]:
+def text_to_symbols(text: str) -> list[Token]:
     parsed: SyntaxNode = gen_tree(text)
     return tree_to_symbols(text, parsed)
 
@@ -121,10 +132,10 @@ def text_to_symbols(text: str) -> List[Token]:
 
 def parse_statement(
     idx: int,
-    x: Union[PersistStatement, MultiSelectStatement, SelectStatement, RawSQLStatement],
+    x: PersistStatement | MultiSelectStatement | SelectStatement | RawSQLStatement,
     dialect: BaseDialect,
     environment: Environment,
-) -> Union[List[CodeLens], None]:
+) -> list[CodeLens] | None:
 
     if isinstance(x, (PersistStatement, MultiSelectStatement, SelectStatement)):
         processed = dialect.generate_queries(environment, [x])
@@ -181,7 +192,7 @@ def parse_statement(
 
 def code_lense_tree(
     environment: Environment, text, input: SyntaxNode, dialect: BaseDialect
-) -> List[CodeLens]:
+) -> list[CodeLens]:
     tokens = []
     doc = parse_syntax(text)
     parser = TopLevelStatementParser(environment=environment)
@@ -191,8 +202,8 @@ def code_lense_tree(
             x = parse_statement(idx, stmt, dialect, environment=environment)
             if x:
                 tokens += x
-        except Exception:
-            pass
+        except RECOVERABLE_PARSE_EXCEPTIONS:
+            logger.exception("Failed to parse statement for code lens")
     return tokens
 
 
@@ -212,7 +223,7 @@ CONCEPT_REFERENCE_NODES = {
 
 def extract_concept_locations(
     tree: SyntaxNode, default_namespace: str = "local"
-) -> List[ConceptLocation]:
+) -> list[ConceptLocation]:
     """
     Extract all concept definition and reference locations from the parse tree.
 
@@ -223,12 +234,12 @@ def extract_concept_locations(
     - Imported concepts: 'b.user_id' -> 'b.user_id' (namespace already in identifier)
     - Property references: 'user_id.name' -> stored as-is for resolution
     """
-    locations: List[ConceptLocation] = []
+    locations: list[ConceptLocation] = []
 
     def walk_tree(
-        node: Union[SyntaxNode, SyntaxToken],
+        node: SyntaxNode | SyntaxToken,
         in_definition: bool = False,
-        parent_data: Optional[str] = None,
+        parent_data: str | None = None,
     ):
         if isinstance(node, SyntaxToken):
             # We found a token - check if it's an identifier in a relevant context
@@ -279,8 +290,8 @@ def extract_concept_locations(
 
 
 def resolve_concept_address(
-    location_address: str, concept_info_map: Dict[str, ConceptInfo]
-) -> Optional[ConceptInfo]:
+    location_address: str, concept_info_map: dict[str, ConceptInfo]
+) -> ConceptInfo | None:
     """
     Resolve a concept address from a location to actual concept info.
 
@@ -337,14 +348,14 @@ def resolve_concept_address(
 
 def extract_concepts_from_environment(
     environment: Environment,
-) -> Dict[str, ConceptInfo]:
+) -> dict[str, ConceptInfo]:
     """
     Extract concept information from an Environment object.
 
     Returns a dictionary mapping concept address to ConceptInfo.
     Uses env.user_concepts() to filter out internal concepts.
     """
-    concepts: Dict[str, ConceptInfo] = {}
+    concepts: dict[str, ConceptInfo] = {}
 
     # Use user_concepts() if available (pytrilogy >= 0.3.156), otherwise filter manually
     if hasattr(environment, "user_concepts"):
@@ -427,10 +438,10 @@ def extract_concepts_from_environment(
 
 
 def find_concept_at_position(
-    locations: List[ConceptLocation],
+    locations: list[ConceptLocation],
     line: int,
     column: int,
-) -> Optional[ConceptLocation]:
+) -> ConceptLocation | None:
     """
     Find the concept location that contains the given position.
 
@@ -450,11 +461,7 @@ def find_concept_at_position(
                     return loc
             else:
                 # Multi-line
-                if line_1idx == loc.start_line and col_1idx >= loc.start_column:
-                    return loc
-                elif line_1idx == loc.end_line and col_1idx <= loc.end_column:
-                    return loc
-                elif loc.start_line < line_1idx < loc.end_line:
+                if line_1idx == loc.start_line and col_1idx >= loc.start_column or line_1idx == loc.end_line and col_1idx <= loc.end_column or loc.start_line < line_1idx < loc.end_line:
                     return loc
 
     return None
@@ -516,8 +523,8 @@ def format_concept_hover(concept: ConceptInfo, is_definition: bool = False) -> s
 
 
 def get_definition_locations(
-    locations: List[ConceptLocation], concept_address: str
-) -> List[ConceptLocation]:
+    locations: list[ConceptLocation], concept_address: str
+) -> list[ConceptLocation]:
     """
     Find all definition locations for a given concept address.
     """
@@ -528,15 +535,15 @@ def get_definition_locations(
     return definitions
 
 
-def extract_datasource_info(tree: SyntaxNode) -> List[DatasourceInfo]:
+def extract_datasource_info(tree: SyntaxNode) -> list[DatasourceInfo]:
     """
     Extract datasource information from the parse tree for hover tooltips.
     """
-    datasources: List[DatasourceInfo] = []
+    datasources: list[DatasourceInfo] = []
 
-    def _extract_column_identifiers(col_assign: SyntaxNode) -> List[str]:
+    def _extract_column_identifiers(col_assign: SyntaxNode) -> list[str]:
         """Extract IDENTIFIER values from a column_assignment node."""
-        identifiers: List[str] = []
+        identifiers: list[str] = []
         for ca in col_assign.children:
             if isinstance(ca, SyntaxNode) and ca.name == "concept_assignment":
                 for ca_child in ca.children:
@@ -546,7 +553,7 @@ def extract_datasource_info(tree: SyntaxNode) -> List[DatasourceInfo]:
                 identifiers.append(ca.value)
         return identifiers
 
-    def walk_tree(node: Union[SyntaxNode, SyntaxToken]):
+    def walk_tree(node: SyntaxNode | SyntaxToken):
         if isinstance(node, SyntaxToken):
             return
 
@@ -572,11 +579,7 @@ def extract_datasource_info(tree: SyntaxNode) -> List[DatasourceInfo]:
                         name = child.value
                         start_line = child.line or 1
                         start_column = child.column or 1
-                    elif child.name == "ADDRESS":
-                        address = child.value
-                        end_line = child.end_line or child.line or 1
-                        end_column = child.end_column or 100
-                    elif child.name == "IDENTIFIER":
+                    elif child.name == "ADDRESS" or child.name == "IDENTIFIER":
                         address = child.value
                         end_line = child.end_line or child.line or 1
                         end_column = child.end_column or 100
@@ -633,13 +636,13 @@ def extract_datasource_info(tree: SyntaxNode) -> List[DatasourceInfo]:
     return datasources
 
 
-def extract_import_info(tree: SyntaxNode) -> List[ImportInfo]:
+def extract_import_info(tree: SyntaxNode) -> list[ImportInfo]:
     """
     Extract import information from the parse tree for hover tooltips.
     """
-    imports: List[ImportInfo] = []
+    imports: list[ImportInfo] = []
 
-    def walk_tree(node: Union[SyntaxNode, SyntaxToken]):
+    def walk_tree(node: SyntaxNode | SyntaxToken):
         if isinstance(node, SyntaxToken):
             return
 
@@ -655,19 +658,22 @@ def extract_import_info(tree: SyntaxNode) -> List[ImportInfo]:
             end_column = 1
 
             for child in node.children:
-                if isinstance(child, SyntaxToken):
-                    if child.name in ("IDENTIFIER", "DOTTED_NAME", "FILEPATH"):
-                        if not path:
-                            path = child.value
-                            start_line = child.line or 1
-                            start_column = child.column or 1
-                            end_line = child.end_line or child.line or 1
-                            end_column = child.end_column or 100
-                        else:
-                            # This is the alias
-                            alias = child.value
-                            end_line = child.end_line or child.line or 1
-                            end_column = child.end_column or 100
+                if isinstance(child, SyntaxToken) and child.name in (
+                    "IDENTIFIER",
+                    "DOTTED_NAME",
+                    "FILEPATH",
+                ):
+                    if not path:
+                        path = child.value
+                        start_line = child.line or 1
+                        start_column = child.column or 1
+                        end_line = child.end_line or child.line or 1
+                        end_column = child.end_column or 100
+                    else:
+                        # This is the alias
+                        alias = child.value
+                        end_line = child.end_line or child.line or 1
+                        end_column = child.end_column or 100
 
             if path:
                 imports.append(
@@ -736,15 +742,15 @@ def format_import_hover(imp: ImportInfo) -> str:
 
 
 def get_document_symbols(
-    locations: List[ConceptLocation],
-    concept_info_map: Dict[str, ConceptInfo],
-    datasources: List[DatasourceInfo],
-    imports: List[ImportInfo],
-) -> List[DocumentSymbol]:
+    locations: list[ConceptLocation],
+    concept_info_map: dict[str, ConceptInfo],
+    datasources: list[DatasourceInfo],
+    imports: list[ImportInfo],
+) -> list[DocumentSymbol]:
     """
     Generate document symbols for the outline/navigation view.
     """
-    symbols: List[DocumentSymbol] = []
+    symbols: list[DocumentSymbol] = []
 
     # Add concept definitions
     for loc in locations:

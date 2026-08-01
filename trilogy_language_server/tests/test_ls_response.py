@@ -1,42 +1,43 @@
-import pytest
-from unittest.mock import Mock
 import sys
 from pathlib import Path
+from unittest.mock import Mock
+
+import pytest
 
 # TODO: less shenanigans
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
+from lsprotocol.types import (
+    CodeLens,
+    CodeLensParams,
+    CompletionParams,
+    DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams,
+    DocumentFormattingParams,
+    HoverParams,
+    MessageType,
+    Position,
+    Range,
+    TextDocumentIdentifier,
+    TextEdit,
+)
+from trilogy_language_server.models import ConceptInfo, ConceptLocation
 from trilogy_language_server.server import (
-    TrilogyLanguageServer,
-    trilogy_server,
-    format_document,
-    completions,
-    did_change,
-    did_close,
-    code_lens,
-    code_lens_resolve,
-    handle_config,
-    hover,
-    TokenTypes,
     ADDITION,
     Token,
     TokenModifier,
+    TokenTypes,
+    TrilogyLanguageServer,
+    code_lens,
+    code_lens_resolve,
+    completions,
+    did_change,
+    did_close,
+    format_document,
     get_diagnostics,
-)
-from trilogy_language_server.models import ConceptInfo, ConceptLocation
-from lsprotocol.types import (
-    DidChangeTextDocumentParams,
-    DidCloseTextDocumentParams,
-    TextDocumentIdentifier,
-    Position,
-    Range,
-    CompletionParams,
-    CodeLensParams,
-    CodeLens,
-    DocumentFormattingParams,
-    MessageType,
-    HoverParams,
-    TextEdit,
+    handle_config,
+    hover,
+    trilogy_server,
 )
 
 TEST_TEXT = """select 1-> test;"""
@@ -86,7 +87,7 @@ class TestTrilogyLanguageServer:
     def test_publish_tokens(self, server):
         """Test the publish_tokens method."""
         # Setup mocks
-        raw_tree, diagnostics = get_diagnostics(TEST_TEXT)
+        raw_tree, _diagnostics = get_diagnostics(TEST_TEXT)
 
         # Execute
         server.publish_tokens(
