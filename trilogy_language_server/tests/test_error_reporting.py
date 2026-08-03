@@ -3,9 +3,6 @@
 import sys
 from pathlib import Path
 
-import pytest
-from lsprotocol.types import DiagnosticSeverity
-
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from trilogy_language_server.error_reporting import (
