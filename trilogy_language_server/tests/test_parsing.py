@@ -1,23 +1,23 @@
+from lsprotocol.types import CodeLens, Command, Position, Range
+from trilogy.authoring import Environment
+from trilogy.dialect.duckdb import DuckDBDialect
+from trilogy.parsing.parse_engine_v2 import TopLevelStatementParser, parse_syntax
 from trilogy_language_server.models import (
-    Token,
-    TokenModifier,
     ConceptInfo,
     ConceptLocation,
+    Token,
+    TokenModifier,
 )
 from trilogy_language_server.parsing import (
-    tree_to_symbols,
-    gen_tree,
     code_lense_tree,
     extract_concept_locations,
     extract_concepts_from_environment,
     find_concept_at_position,
     format_concept_hover,
+    gen_tree,
     resolve_concept_address,
+    tree_to_symbols,
 )
-from lsprotocol.types import CodeLens, Range, Position, Command
-from trilogy.dialect.duckdb import DuckDBDialect
-from trilogy.authoring import Environment
-from trilogy.parsing.parse_engine_v2 import parse_syntax, TopLevelStatementParser
 
 
 def test_parse_tree():
@@ -384,8 +384,8 @@ select b.user_id;
 
 def test_format_datasource_hover():
     """Test formatting datasource info for hover display"""
-    from trilogy_language_server.parsing import format_datasource_hover
     from trilogy_language_server.models import DatasourceInfo
+    from trilogy_language_server.parsing import format_datasource_hover
 
     ds = DatasourceInfo(
         name="users",
@@ -409,8 +409,8 @@ def test_format_datasource_hover():
 
 def test_format_import_hover():
     """Test formatting import info for hover display"""
-    from trilogy_language_server.parsing import format_import_hover
     from trilogy_language_server.models import ImportInfo
+    from trilogy_language_server.parsing import format_import_hover
 
     imp = ImportInfo(
         path="base",
@@ -430,8 +430,8 @@ def test_format_import_hover():
 
 def test_get_document_symbols():
     """Test generating document symbols for outline"""
-    from trilogy_language_server.parsing import get_document_symbols
     from trilogy_language_server.models import DatasourceInfo, ImportInfo
+    from trilogy_language_server.parsing import get_document_symbols
 
     locations = [
         ConceptLocation(

@@ -3,8 +3,9 @@
 import argparse
 import logging
 import os
-from trilogy_language_server.server import trilogy_server
 import sys
+
+from trilogy_language_server.server import trilogy_server
 
 logging.basicConfig(level=logging.DEBUG)
 

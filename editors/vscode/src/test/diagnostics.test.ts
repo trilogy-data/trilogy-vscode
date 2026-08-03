@@ -12,7 +12,7 @@ suite('Should get diagnostics', () => {
 
     test('Diagnoses uppercase texts', async () => {
         await testDiagnostics(docUri, [
-            { message: ` --> 1:9`, range: toRange(0, 8, 0, 9), severity: vscode.DiagnosticSeverity.Error, source: 'ex' },
+            { message: 'Syntax [202]: Missing closing semicolon?', range: toRange(0, 8, 0, 9), severity: vscode.DiagnosticSeverity.Error, source: 'ex' },
         ]);
     });
 

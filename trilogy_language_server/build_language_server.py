@@ -2,10 +2,9 @@ import os
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 from os import environ
+from pathlib import Path
 from platform import system
-from typing import List
 
 # Get the root directory of the project
 root = Path(__file__).parent
@@ -45,7 +44,7 @@ requirements = root / "requirements.txt"
 if __name__ == "__main__":
     print(f"{python_path}/{parent}/python")
 
-    prefixes: List[str] = []
+    prefixes: list[str] = []
     # Command to execute
     setup_command = prefixes + [
         f"{python_path}",
@@ -65,7 +64,8 @@ if __name__ == "__main__":
         "-m",
         "pip",
         "install",
-        "-r" f"{requirements}",
+        "-r",
+        f"{requirements}",
     ]
     try:
         subprocess.check_call(req_command, cwd=root)

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Set
 import enum
+
+from pydantic import BaseModel, Field
 
 
 class TokenModifier(enum.IntFlag):
@@ -17,7 +17,7 @@ class Token(BaseModel):
     text: str
 
     tok_type: str = ""
-    tok_modifiers: List[TokenModifier] = Field(default_factory=list)
+    tok_modifiers: list[TokenModifier] = Field(default_factory=list)
 
 
 class ConceptInfo(BaseModel):
@@ -28,16 +28,16 @@ class ConceptInfo(BaseModel):
     datatype: str
     purpose: str  # KEY, PROPERTY, METRIC, CONSTANT, AUTO
     namespace: str
-    line_number: Optional[int] = None
-    column: Optional[int] = None
-    end_line: Optional[int] = None
-    end_column: Optional[int] = None
-    description: Optional[str] = None
-    lineage: Optional[str] = None  # For derived concepts
-    keys: Optional[Set[str]] = None  # For properties, the keys they depend on
-    modifiers: List[str] = Field(default_factory=list)
-    derivation: Optional[str] = None
-    concept_source: Optional[str] = None  # MANUAL, AUTO_DERIVED
+    line_number: int | None = None
+    column: int | None = None
+    end_line: int | None = None
+    end_column: int | None = None
+    description: str | None = None
+    lineage: str | None = None  # For derived concepts
+    keys: set[str] | None = None  # For properties, the keys they depend on
+    modifiers: list[str] = Field(default_factory=list)
+    derivation: str | None = None
+    concept_source: str | None = None  # MANUAL, AUTO_DERIVED
 
 
 class ConceptLocation(BaseModel):
@@ -56,8 +56,8 @@ class DatasourceInfo(BaseModel):
 
     name: str
     address: str
-    columns: List[str] = Field(default_factory=list)
-    grain: List[str] = Field(default_factory=list)
+    columns: list[str] = Field(default_factory=list)
+    grain: list[str] = Field(default_factory=list)
     start_line: int
     start_column: int
     end_line: int
@@ -69,7 +69,7 @@ class ImportInfo(BaseModel):
     """Information about an import statement for hover tooltips."""
 
     path: str
-    alias: Optional[str] = None
+    alias: str | None = None
     start_line: int
     start_column: int
     end_line: int

@@ -1,95 +1,104 @@
-import typing as t
-from pygls.lsp.server import LanguageServer
-from pygls.uris import to_fs_path
+import operator
+import re
+from functools import reduce
+from pathlib import Path
+
 from lsprotocol.types import (
+    CODE_LENS_RESOLVE,
+    TEXT_DOCUMENT_CODE_LENS,
     TEXT_DOCUMENT_COMPLETION,
-    CompletionItem,
-    CompletionList,
-    CompletionParams,
-    CompletionItemKind,
-    InsertTextFormat,
-    DidChangeTextDocumentParams,
-    DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams,
+    TEXT_DOCUMENT_DEFINITION,
     TEXT_DOCUMENT_DID_CHANGE,
     TEXT_DOCUMENT_DID_CLOSE,
     TEXT_DOCUMENT_DID_OPEN,
-    TEXT_DOCUMENT_SEMANTIC_TOKENS_FULL,
-    SemanticTokens,
-    CompletionOptions,
-    SemanticTokensLegend,
-    SemanticTokensParams,
-    DocumentFormattingParams,
+    TEXT_DOCUMENT_DOCUMENT_SYMBOL,
     TEXT_DOCUMENT_FORMATTING,
-    TEXT_DOCUMENT_CODE_LENS,
-    CodeLensParams,
-    CODE_LENS_RESOLVE,
-    Command,
-    CodeLens,
-    ShowMessageParams,
-    LogMessageParams,
-    MessageType,
-    PublishDiagnosticsParams,
     TEXT_DOCUMENT_HOVER,
+    TEXT_DOCUMENT_REFERENCES,
+    TEXT_DOCUMENT_SEMANTIC_TOKENS_FULL,
+    TEXT_DOCUMENT_SIGNATURE_HELP,
+    CodeLens,
+    CodeLensParams,
+    Command,
+    CompletionItem,
+    CompletionItemKind,
+    CompletionList,
+    CompletionOptions,
+    CompletionParams,
+    DefinitionParams,
+    DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    DocumentFormattingParams,
+    DocumentSymbol,
+    DocumentSymbolParams,
     Hover,
     HoverParams,
+    InsertTextFormat,
+    Location,
+    LogMessageParams,
     MarkupContent,
     MarkupKind,
-    Range,
-    Position,
-    TEXT_DOCUMENT_DEFINITION,
-    DefinitionParams,
-    Location,
-    TEXT_DOCUMENT_REFERENCES,
-    ReferenceParams,
-    TEXT_DOCUMENT_DOCUMENT_SYMBOL,
-    DocumentSymbolParams,
-    DocumentSymbol,
-    TEXT_DOCUMENT_SIGNATURE_HELP,
-    SignatureHelpParams,
-    SignatureHelp,
-    SignatureInformation,
+    MessageType,
     ParameterInformation,
+    Position,
+    PublishDiagnosticsParams,
+    Range,
+    ReferenceParams,
+    SemanticTokens,
+    SemanticTokensLegend,
+    SemanticTokensParams,
+    ShowMessageParams,
+    SignatureHelp,
     SignatureHelpOptions,
+    SignatureHelpParams,
+    SignatureInformation,
     TextEdit,
 )
-from functools import reduce
-from typing import Dict, List, Optional
-from trilogy_language_server.error_reporting import get_diagnostics
-import operator
+from pygls.lsp.server import LanguageServer
+from pygls.uris import to_fs_path
+from trilogy.authoring import Environment
+from trilogy.core.exceptions import InvalidSyntaxException
+from trilogy.dialect.duckdb import DuckDBDialect
+from trilogy.parsing.parse_engine_v2 import TopLevelStatementParser, parse_syntax
+from trilogy.parsing.render import Renderer
 from trilogy.parsing.v2.syntax import SyntaxNode
+
+from trilogy_language_server.error_reporting import get_diagnostics
 from trilogy_language_server.models import (
-    TokenModifier,
-    Token,
     ConceptInfo,
     ConceptLocation,
     DatasourceInfo,
     ImportInfo,
+    Token,
+    TokenModifier,
 )
 from trilogy_language_server.parsing import (
-    tree_to_symbols,
+    TRILOGY_FUNCTIONS,
     code_lense_tree,
     extract_concept_locations,
     extract_concepts_from_environment,
-    find_concept_at_position,
-    format_concept_hover,
-    resolve_concept_address,
-    get_definition_locations,
-    get_document_symbols,
     extract_datasource_info,
     extract_import_info,
+    find_concept_at_position,
+    format_concept_hover,
     format_datasource_hover,
     format_import_hover,
-    TRILOGY_FUNCTIONS,
+    get_definition_locations,
+    get_document_symbols,
+    resolve_concept_address,
+    tree_to_symbols,
 )
-from trilogy.parsing.render import Renderer
-from trilogy.parsing.parse_engine_v2 import parse_syntax, TopLevelStatementParser
-from trilogy.authoring import Environment
-from trilogy.dialect.duckdb import DuckDBDialect
-import re
-from pathlib import Path
 
 TokenTypes = ["keyword", "variable", "function", "operator", "parameter", "type"]
+RECOVERABLE_SERVER_EXCEPTIONS = (
+    AttributeError,
+    InvalidSyntaxException,
+    KeyError,
+    RuntimeError,
+    TypeError,
+    ValueError,
+)
 
 ADDITION = re.compile(r"^\s*(\d+)\s*\+\s*(\d+)\s*=(?=\s*$)")
 
@@ -104,20 +113,20 @@ class TrilogyLanguageServer(LanguageServer):
 
     def __init__(self) -> None:
         super().__init__(name="trilogy-lang-server", version="v0.1")
-        self.tokens: Dict[str, List[Token]] = {}
-        self.code_lens: Dict[str, List[CodeLens]] = {}
-        self.environments: Dict[str, Environment] = {}
+        self.tokens: dict[str, list[Token]] = {}
+        self.code_lens: dict[str, list[CodeLens]] = {}
+        self.environments: dict[str, Environment] = {}
         self.dialect = DuckDBDialect()
         # Storage for concept hover information
-        self.concept_locations: Dict[str, List[ConceptLocation]] = {}
-        self.concept_info: Dict[str, Dict[str, ConceptInfo]] = {}
+        self.concept_locations: dict[str, list[ConceptLocation]] = {}
+        self.concept_info: dict[str, dict[str, ConceptInfo]] = {}
         # Storage for datasource and import information
-        self.datasource_info: Dict[str, List[DatasourceInfo]] = {}
-        self.import_info: Dict[str, List[ImportInfo]] = {}
+        self.datasource_info: dict[str, list[DatasourceInfo]] = {}
+        self.import_info: dict[str, list[ImportInfo]] = {}
 
     def _validate(
         self: "TrilogyLanguageServer",
-        params: t.Union[DidChangeTextDocumentParams, DidOpenTextDocumentParams],
+        params: DidChangeTextDocumentParams | DidOpenTextDocumentParams,
     ):
         self.window_log_message(
             LogMessageParams(type=MessageType.Log, message="Validating document...")
@@ -151,7 +160,7 @@ class TrilogyLanguageServer(LanguageServer):
                     message=f"Found {len(locations)} concept locations for hover support",
                 )
             )
-        except Exception as e:
+        except RECOVERABLE_SERVER_EXCEPTIONS as e:
             self.window_log_message(
                 LogMessageParams(
                     type=MessageType.Warning,
@@ -170,7 +179,7 @@ class TrilogyLanguageServer(LanguageServer):
                     message=f"Found {len(datasources)} datasources for hover support",
                 )
             )
-        except Exception as e:
+        except RECOVERABLE_SERVER_EXCEPTIONS as e:
             self.window_log_message(
                 LogMessageParams(
                     type=MessageType.Warning,
@@ -189,7 +198,7 @@ class TrilogyLanguageServer(LanguageServer):
                     message=f"Found {len(imports)} imports for hover support",
                 )
             )
-        except Exception as e:
+        except RECOVERABLE_SERVER_EXCEPTIONS as e:
             self.window_log_message(
                 LogMessageParams(
                     type=MessageType.Warning,
@@ -228,7 +237,7 @@ class TrilogyLanguageServer(LanguageServer):
                     message=f"Extracted {len(concept_info)} concepts for hover support",
                 )
             )
-        except Exception as e:
+        except RECOVERABLE_SERVER_EXCEPTIONS as e:
             self.window_log_message(
                 LogMessageParams(
                     type=MessageType.Warning,
@@ -252,7 +261,7 @@ trilogy_server = TrilogyLanguageServer()
 @trilogy_server.feature(TEXT_DOCUMENT_FORMATTING)
 def format_document(
     ls: LanguageServer, params: DocumentFormattingParams
-) -> Optional[List[TextEdit]]:
+) -> list[TextEdit] | None:
     """Format the entire document"""
     ls.window_log_message(
         LogMessageParams(type=MessageType.Log, message=f"Formatting called @ {params}")
@@ -293,7 +302,7 @@ def format_document(
                 new_text=formatted_text,
             )
         ]
-    except Exception as e:
+    except RECOVERABLE_SERVER_EXCEPTIONS as e:
         ls.window_log_message(
             LogMessageParams(type=MessageType.Error, message=f"Formatting failed: {e}")
         )
@@ -304,7 +313,7 @@ def format_document(
     TEXT_DOCUMENT_COMPLETION,
     CompletionOptions(trigger_characters=[",", ".", " "]),
 )
-def completions(ls: TrilogyLanguageServer, params: Optional[CompletionParams] = None):
+def completions(ls: TrilogyLanguageServer, params: CompletionParams | None = None):
     """Returns completion items."""
     if params is None:
         return CompletionList(is_incomplete=False, items=[])
@@ -317,13 +326,13 @@ def completions(ls: TrilogyLanguageServer, params: Optional[CompletionParams] = 
         )
     )
 
-    items: t.List[CompletionItem] = []
+    items: list[CompletionItem] = []
 
     # Get concept information from the document
     concept_info_map = ls.concept_info.get(uri, {})
 
     # Add concepts as completion items
-    for address, concept in concept_info_map.items():
+    for concept in concept_info_map.values():
         # Skip internal concepts
         if concept.namespace == "__preql_internal":
             continue
@@ -498,7 +507,7 @@ def semantic_tokens_full(ls: TrilogyLanguageServer, params: SemanticTokensParams
 
 
 @trilogy_server.feature(TEXT_DOCUMENT_HOVER)
-def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Optional[Hover]:
+def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Hover | None:
     """Return hover information for the symbol at the given position."""
     uri = params.text_document.uri
     position = params.position
@@ -547,20 +556,17 @@ def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Optional[Hover]:
     # Check if cursor is over an import
     imports = ls.import_info.get(uri, [])
     for imp in imports:
-        if imp.start_line <= line_1idx <= imp.end_line:
-            if imp.start_column <= col_1idx <= imp.end_column:
-                hover_text = format_import_hover(imp)
-                return Hover(
-                    contents=MarkupContent(kind=MarkupKind.Markdown, value=hover_text),
-                    range=Range(
-                        start=Position(
-                            line=imp.start_line - 1, character=imp.start_column - 1
-                        ),
-                        end=Position(
-                            line=imp.end_line - 1, character=imp.end_column - 1
-                        ),
-                    ),
-                )
+        if imp.start_line <= line_1idx <= imp.end_line and (
+            imp.start_column <= col_1idx <= imp.end_column
+        ):
+            hover_text = format_import_hover(imp)
+            return Hover(
+                contents=MarkupContent(kind=MarkupKind.Markdown, value=hover_text),
+                range=Range(
+                    start=Position(line=imp.start_line - 1, character=imp.start_column - 1),
+                    end=Position(line=imp.end_line - 1, character=imp.end_column - 1),
+                ),
+            )
 
     # Get concept locations for this document
     locations = ls.concept_locations.get(uri, [])
@@ -631,7 +637,7 @@ def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Optional[Hover]:
 @trilogy_server.feature(TEXT_DOCUMENT_DEFINITION)
 def definition(
     ls: TrilogyLanguageServer, params: DefinitionParams
-) -> Optional[List[Location]]:
+) -> list[Location] | None:
     """Return the definition location for the symbol at the given position."""
     uri = params.text_document.uri
     position = params.position
@@ -707,7 +713,7 @@ def definition(
 @trilogy_server.feature(TEXT_DOCUMENT_REFERENCES)
 def references(
     ls: TrilogyLanguageServer, params: ReferenceParams
-) -> Optional[List[Location]]:
+) -> list[Location] | None:
     """Return all references to the symbol at the given position."""
     uri = params.text_document.uri
     position = params.position
@@ -766,7 +772,7 @@ def references(
 @trilogy_server.feature(TEXT_DOCUMENT_DOCUMENT_SYMBOL)
 def document_symbol(
     ls: TrilogyLanguageServer, params: DocumentSymbolParams
-) -> Optional[List[DocumentSymbol]]:
+) -> list[DocumentSymbol] | None:
     """Return document symbols for outline/navigation."""
     uri = params.text_document.uri
 
@@ -792,7 +798,7 @@ def document_symbol(
 )
 def signature_help(
     ls: TrilogyLanguageServer, params: SignatureHelpParams
-) -> Optional[SignatureHelp]:
+) -> SignatureHelp | None:
     """Return signature help for function calls."""
     uri = params.text_document.uri
     position = params.position
@@ -908,12 +914,12 @@ def code_lens_resolve(ls: LanguageServer, item: CodeLens):
     right = item.data["right"]
     uri = item.data["uri"]
 
-    args = dict(
-        uri=uri,
-        left=left,
-        right=right,
-        line=item.range.start.line,
-    )
+    args = {
+        "uri": uri,
+        "left": left,
+        "right": right,
+        "line": item.range.start.line,
+    }
 
     item.command = Command(
         title="Evaluate",
@@ -935,7 +941,7 @@ def handle_config(ls: TrilogyLanguageServer, config):
             )
         )
 
-    except Exception as e:
+    except RECOVERABLE_SERVER_EXCEPTIONS as e:
         ls.window_log_message(
             LogMessageParams(type=MessageType.Error, message=f"Error occurred: {e}")
         )
