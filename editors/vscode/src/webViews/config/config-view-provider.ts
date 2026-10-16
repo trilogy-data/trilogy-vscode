@@ -58,25 +58,27 @@ export class ConfigViewProvider implements vscode.WebviewViewProvider {
     // Handle messages from the webview
     webviewView.webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
-        case 'selectConfig':
+        case 'selectConfig': {
           const config = this._configService.configs.find(c => c.path === data.path);
           if (config) {
             this._configService.setActiveConfig(config);
           }
           break;
+        }
         case 'clearConfig':
           this._configService.clearActiveConfig();
           break;
         case 'refreshConfigs':
           await this._configService.discoverConfigs();
           break;
-        case 'openConfigFile':
+        case 'openConfigFile': {
           const configPath = data.path;
           if (configPath) {
             const uri = vscode.Uri.file(configPath);
             await vscode.commands.executeCommand('vscode.open', uri);
           }
           break;
+        }
         case 'startServe':
           if (data.path) {
             await this._serveService.startServe(data.path);

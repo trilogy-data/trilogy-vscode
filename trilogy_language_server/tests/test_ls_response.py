@@ -21,6 +21,7 @@ from lsprotocol.types import (
     TextDocumentIdentifier,
     TextEdit,
 )
+
 from trilogy_language_server.models import ConceptInfo, ConceptLocation
 from trilogy_language_server.server import (
     ADDITION,
@@ -124,6 +125,17 @@ class TestTrilogyLanguageServer:
 
         # Verify - method should return early
         assert "bc:///test/example.trilogy" not in server.code_lens
+
+    def test_publish_recursive_model_concepts(self, server):
+        model = Path(__file__).parent / "fixtures" / "recurse_edge" / "process.preql"
+        source = model.read_text(encoding="utf-8")
+        tree, diagnostics = get_diagnostics(source)
+        assert not diagnostics
+        server.window_log_message = Mock()
+        server.publish_code_lens(source, tree, model.as_uri())
+
+        assert "local.app_pid" in server.concept_info[model.as_uri()]
+        assert "parent.pid" in server.concept_info[model.as_uri()]
 
 
 class TestFeatureFunctions:
@@ -460,6 +472,61 @@ class TestNestedImportFormatting:
         """Return the path to the nested test fixtures."""
         return Path(__file__).parent / "fixtures" / "nested"
 
+    @pytest.mark.parametrize("saved", [True, False])
+    def test_format_recursive_model(self, mock_server, tmp_path, saved):
+        """Self imports retain their context and use the current editor buffer."""
+        fixture = Path(__file__).parent / "fixtures" / "recurse_edge" / "process.preql"
+        source = fixture.read_text(encoding="utf-8")
+        model_dir = tmp_path / "recursive models"
+        model_dir.mkdir()
+        model_file = model_dir / "process.preql"
+        if saved:
+            model_file.write_text(source, encoding="utf-8")
+        source += "\nauto unsaved_mem <- mem + 1;\n"
+        document = Mock(source=source)
+        mock_server.workspace.get_text_document.return_value = document
+        params = DocumentFormattingParams(
+            text_document=TextDocumentIdentifier(uri=model_file.as_uri()),
+            options=Mock(),
+        )
+
+        result = format_document(mock_server, params)
+
+        assert result is not None
+        assert len(result) == 1
+        edit = result[0]
+        assert edit.range == Range(
+            start=Position(line=0, character=0),
+            end=Position(line=len(source.split("\n")) - 1, character=0),
+        )
+        assert "self import as parent;" in edit.new_text
+        assert "self import as app;" in edit.new_text
+        assert "recurse_edge(pid, parent.pid)" in edit.new_text
+        assert "merge app_pid into app.pid;" in edit.new_text
+        assert "datasource procs" in edit.new_text
+        assert "unsaved_mem" in edit.new_text
+        assert edit.new_text != source
+
+        # The rendered model must parse again and be stable on a second format.
+        document.source = edit.new_text
+        second_result = format_document(mock_server, params)
+        assert second_result is not None
+        assert second_result[0].new_text == edit.new_text
+
+    def test_format_untitled_self_import_handles_missing_context(self, mock_server):
+        mock_server.workspace.get_text_document.return_value = Mock(
+            source="self import as parent;\nkey pid int;"
+        )
+        params = DocumentFormattingParams(
+            text_document=TextDocumentIdentifier(uri="untitled:Untitled-1"),
+            options=Mock(),
+        )
+
+        assert format_document(mock_server, params) is None
+        message = mock_server.window_log_message.call_args.args[0]
+        assert message.type == MessageType.Error
+        assert "file path context" in message.message
+
     def test_format_document_with_nested_import(
         self, mock_server, nested_fixtures_path
     ):
@@ -478,7 +545,7 @@ class TestNestedImportFormatting:
         mock_server.workspace.get_text_document.return_value = mock_document
 
         # Create a file URI that points to the nested directory
-        file_uri = f"file://{main_file}"
+        file_uri = main_file.as_uri()
 
         params = DocumentFormattingParams(
             text_document=TextDocumentIdentifier(uri=file_uri),
@@ -513,7 +580,7 @@ class TestNestedImportFormatting:
         mock_document.source = main_content
         mock_server.workspace.get_text_document.return_value = mock_document
 
-        file_uri = f"file://{main_file}"
+        file_uri = main_file.as_uri()
 
         params = DocumentFormattingParams(
             text_document=TextDocumentIdentifier(uri=file_uri),
@@ -574,7 +641,7 @@ class TestNestedImportFormatting:
 
         # Use the actual nested fixtures path
         nested_path = Path(__file__).parent / "fixtures" / "nested" / "main.preql"
-        file_uri = f"file://{nested_path}"
+        file_uri = nested_path.as_uri()
 
         params = DocumentFormattingParams(
             text_document=TextDocumentIdentifier(uri=file_uri),

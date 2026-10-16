@@ -143,7 +143,10 @@ class TrilogyLanguageServer(LanguageServer):
             self.publish_concept_locations(raw_tree, text_doc.uri)
 
     def publish_tokens(
-        self: "TrilogyLanguageServer", original_text: str, raw_tree: SyntaxNode, uri: str
+        self: "TrilogyLanguageServer",
+        original_text: str,
+        raw_tree: SyntaxNode,
+        uri: str,
     ):
         self.tokens[uri] = tree_to_symbols(original_text, raw_tree)
 
@@ -208,7 +211,10 @@ class TrilogyLanguageServer(LanguageServer):
             self.import_info[uri] = []
 
     def publish_code_lens(
-        self: "TrilogyLanguageServer", original_text: str, raw_tree: SyntaxNode, uri: str
+        self: "TrilogyLanguageServer",
+        original_text: str,
+        raw_tree: SyntaxNode,
+        uri: str,
     ):
         environment = self.environments.get(uri, None)
         fs_path_str = to_fs_path(uri)
@@ -217,7 +223,7 @@ class TrilogyLanguageServer(LanguageServer):
         fs_path = Path(fs_path_str)
         env_path = fs_path.parent
         if not environment:
-            environment = Environment(working_path=env_path)
+            environment = Environment(working_path=env_path, env_file_path=fs_path)
             self.environments[uri] = environment
         lenses = code_lense_tree(
             environment=environment,
@@ -269,12 +275,11 @@ def format_document(
 
     doc = ls.workspace.get_text_document(params.text_document.uri)
 
-    # Extract working path from document URI for proper import resolution
-    # Imports are relative to the file containing the import statement
+    # Imports need the containing directory; self imports also need the file path.
     fs_path_str = to_fs_path(params.text_document.uri)
     if fs_path_str:
-        working_path = Path(fs_path_str).parent
-        env = Environment(working_path=working_path)
+        file_path = Path(fs_path_str)
+        env = Environment(working_path=file_path.parent, env_file_path=file_path)
     else:
         # For non-file URIs (e.g., untitled:), use default Environment
         env = Environment()
@@ -302,7 +307,7 @@ def format_document(
                 new_text=formatted_text,
             )
         ]
-    except RECOVERABLE_SERVER_EXCEPTIONS as e:
+    except (*RECOVERABLE_SERVER_EXCEPTIONS, ImportError) as e:
         ls.window_log_message(
             LogMessageParams(type=MessageType.Error, message=f"Formatting failed: {e}")
         )
@@ -563,7 +568,9 @@ def hover(ls: TrilogyLanguageServer, params: HoverParams) -> Hover | None:
             return Hover(
                 contents=MarkupContent(kind=MarkupKind.Markdown, value=hover_text),
                 range=Range(
-                    start=Position(line=imp.start_line - 1, character=imp.start_column - 1),
+                    start=Position(
+                        line=imp.start_line - 1, character=imp.start_column - 1
+                    ),
                     end=Position(line=imp.end_line - 1, character=imp.end_column - 1),
                 ),
             )

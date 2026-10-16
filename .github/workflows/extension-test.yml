@@ -47,6 +47,10 @@ jobs:
         working-directory: editors/vscode
         run: pnpm run test:grammar
 
+      - name: Lint extension
+        working-directory: editors/vscode
+        run: pnpm run lint
+
       - name: Run VS Code extension tests (Linux)
         if: runner.os == 'Linux'
         working-directory: editors/vscode
