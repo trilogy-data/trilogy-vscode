@@ -15,11 +15,14 @@ suite('Recursive model formatting', () => {
 		);
 
 		assert.ok(edits, 'The language server should return formatting edits');
-		assert.strictEqual(edits.length, 1);
-		assert.ok(edits[0].range.isEqual(new vscode.Range(
-			document.positionAt(0), document.positionAt(document.getText().length)
-		)));
-		const formatted = edits[0].newText;
+		assert.ok(edits.length > 0, 'The model should need formatting');
+		// VS Code may split the server's whole-document edit into minimal edits.
+		let formatted = document.getText();
+		for (const edit of [...edits].sort((a, b) => b.range.start.compareTo(a.range.start))) {
+			const start = document.offsetAt(edit.range.start);
+			const end = document.offsetAt(edit.range.end);
+			formatted = formatted.slice(0, start) + edit.newText + formatted.slice(end);
+		}
 		assert.ok(formatted.includes('self import as parent;'));
 		assert.ok(formatted.includes('self import as app;'));
 		assert.ok(formatted.includes('recurse_edge(pid, parent.pid)'));
