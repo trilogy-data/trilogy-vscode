@@ -2,3 +2,6 @@
 python_version = 3.11
 ignore_missing_imports = true
 exclude = ["dist"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["trilogy_language_server"]
