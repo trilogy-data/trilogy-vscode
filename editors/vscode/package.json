@@ -4,7 +4,7 @@
   "author": "N/A",
   "repository": "https://github.com/trilogydata/trilogy-language-server",
   "license": "MIT",
-  "version": "0.1.35",
+  "version": "0.1.36",
   "publisher": "trilogydata",
   "engines": {
     "vscode": "^1.75.0"
@@ -121,7 +121,7 @@
     "vscode:prepublish": "node include_dependencies.js && node build-backend.js && pnpm run compile && node esbuild.mjs --production && pnpm run icons:svgo && fantasticon",
     "compile": "pnpm exec tsc -b",
     "watch": "pnpm exec tsc -b -w",
-    "lint": "eslint \"src/**/*.ts\" --fix",
+    "lint": "eslint \"src/**/*.ts\"",
     "package": "vsce package --no-dependencies --out trilogy_tools.vsix",
     "watch:esbuild": "node esbuild.mjs --watch",
     "icons:svgo": "svgo -q -f ./images/icons/ --config svgo.config.js",

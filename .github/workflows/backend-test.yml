@@ -39,6 +39,8 @@ jobs:
         run: |
           # stop the build if there are Python syntax errors or undefined names
           ruff check .
+      - name: Check formatting with Black
+        run: python -m black --check trilogy_language_server
       - name: Test with pytest
         working-directory: ./trilogy_language_server
         run: |

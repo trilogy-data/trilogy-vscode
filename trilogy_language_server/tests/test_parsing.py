@@ -2,6 +2,7 @@ from lsprotocol.types import CodeLens, Command, Position, Range
 from trilogy.authoring import Environment
 from trilogy.dialect.duckdb import DuckDBDialect
 from trilogy.parsing.parse_engine_v2 import TopLevelStatementParser, parse_syntax
+
 from trilogy_language_server.models import (
     ConceptInfo,
     ConceptLocation,

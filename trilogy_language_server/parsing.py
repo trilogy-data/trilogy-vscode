@@ -461,7 +461,13 @@ def find_concept_at_position(
                     return loc
             else:
                 # Multi-line
-                if line_1idx == loc.start_line and col_1idx >= loc.start_column or line_1idx == loc.end_line and col_1idx <= loc.end_column or loc.start_line < line_1idx < loc.end_line:
+                if (
+                    line_1idx == loc.start_line
+                    and col_1idx >= loc.start_column
+                    or line_1idx == loc.end_line
+                    and col_1idx <= loc.end_column
+                    or loc.start_line < line_1idx < loc.end_line
+                ):
                     return loc
 
     return None
@@ -547,7 +553,10 @@ def extract_datasource_info(tree: SyntaxNode) -> list[DatasourceInfo]:
         for ca in col_assign.children:
             if isinstance(ca, SyntaxNode) and ca.name == "concept_assignment":
                 for ca_child in ca.children:
-                    if isinstance(ca_child, SyntaxToken) and ca_child.name == "IDENTIFIER":
+                    if (
+                        isinstance(ca_child, SyntaxToken)
+                        and ca_child.name == "IDENTIFIER"
+                    ):
                         identifiers.append(ca_child.value)
             elif isinstance(ca, SyntaxToken) and ca.name == "IDENTIFIER":
                 identifiers.append(ca.value)
@@ -589,7 +598,9 @@ def extract_datasource_info(tree: SyntaxNode) -> list[DatasourceInfo]:
                     if child_data == "address":
                         # address node contains ADDRESS token
                         for addr_child in child.children:
-                            if isinstance(addr_child, SyntaxToken) and addr_child.name in (
+                            if isinstance(
+                                addr_child, SyntaxToken
+                            ) and addr_child.name in (
                                 "ADDRESS",
                                 "IDENTIFIER",
                             ):
@@ -603,15 +614,27 @@ def extract_datasource_info(tree: SyntaxNode) -> list[DatasourceInfo]:
                                 columns.extend(_extract_column_identifiers(col_assign))
                     elif child_data == "column_list":
                         for col_child in child.children:
-                            if isinstance(col_child, SyntaxToken) and col_child.name == "IDENTIFIER":
+                            if (
+                                isinstance(col_child, SyntaxToken)
+                                and col_child.name == "IDENTIFIER"
+                            ):
                                 columns.append(col_child.value)
                     elif child_data == "grain_clause":
                         for grain_child in child.children:
-                            if isinstance(grain_child, SyntaxNode) and grain_child.name == "column_list":
+                            if (
+                                isinstance(grain_child, SyntaxNode)
+                                and grain_child.name == "column_list"
+                            ):
                                 for gc in grain_child.children:
-                                    if isinstance(gc, SyntaxToken) and gc.name == "IDENTIFIER":
+                                    if (
+                                        isinstance(gc, SyntaxToken)
+                                        and gc.name == "IDENTIFIER"
+                                    ):
                                         grain.append(gc.value)
-                            elif isinstance(grain_child, SyntaxToken) and grain_child.name == "IDENTIFIER":
+                            elif (
+                                isinstance(grain_child, SyntaxToken)
+                                and grain_child.name == "IDENTIFIER"
+                            ):
                                 grain.append(grain_child.value)
 
             if name:
